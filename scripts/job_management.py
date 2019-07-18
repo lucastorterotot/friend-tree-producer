@@ -297,11 +297,14 @@ def main():
     parser.add_argument('--custom_workdir_path',default=None, type=str, help='Absolute path to a workdir directory different from $CMSSW_BASE/src.')
     parser.add_argument('--restrict_to_channels', nargs='+', default=[], help='Produce friends only for certain channels')
     parser.add_argument('--restrict_to_shifts', nargs='+', default=[], help='Produce friends only for certain shifts')
-    parser.add_argument('--restrict_to_samples_wildcard', default="*", help='Produce friends only for samples matching the path wildcard')
+    parser.add_argument('--restrict_to_samples_wildcards', nargs='+', default=[], help='Produce friends only for samples matching the path wildcard')
 
     args = parser.parse_args()
-
-    input_ntuples_list = glob.glob(os.path.join(args.input_ntuples_directory,args.restrict_to_samples_wildcard,"*.root"))
+    if len(args.restrict_to_samples_wildcards) == 0:
+        args.restrict_to_samples_wildcards.append("*")
+    input_ntuples_list = []
+    for wildcard in args.restrict_to_samples_wildcards:
+        input_ntuples_list += glob.glob(os.path.join(args.input_ntuples_directory,wildcard,"*.root"))
     extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
     if args.extended_file_access:
         input_ntuples_list = ["/".join([args.extended_file_access,f]) for f in input_ntuples_list]
