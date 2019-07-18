@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   }
 
   // Initialize weight histogram
-  std::string weight_filename = weight_directory+"zpt_weights_" + std::to_string(year) + "_kit.root";
+  std::string weight_filename = weight_directory+"zptm_weights_" + std::to_string(year) + "_kit.root";
   TFile* weight_file = TFile::Open(weight_filename.c_str(), "read");
   TH2D* weight_hist = (TH2D*) weight_file->Get("zptmass_histo");
 
