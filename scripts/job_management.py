@@ -9,6 +9,7 @@ import numpy as np
 import stat
 import re
 import copy
+import time
 from multiprocessing import Pool
 
 
@@ -143,6 +144,25 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     condorjdl_template_path = os.path.join(os.environ["CMSSW_BASE"],"src/HiggsAnalysis/friend-tree-producer/data/submit_condor_%s.jdl"%batch_cluster)
     condorjdl_template_file = open(condorjdl_template_path,"r")
     condorjdl_template = condorjdl_template_file.read()
+
+    gc_template_path = os.path.join(os.environ["CMSSW_BASE"],"src/HiggsAnalysis/friend-tree-producer/data/grid-control_%s.conf"%batch_cluster)
+    gc_template_file = open(gc_template_path, "r")
+    gc_template = gc_template_file.read()
+    if walltime > 0:
+        if walltime < 86399:
+            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=executable_path,WALLTIME=time.strftime("%H:%M:%S", time.gmtime(walltime)),NJOBS=job_number)
+        else: 
+            print "Warning: Please set walltimes greater than 24 hours manually in gc config."
+            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=executable_path,WALLTIME="24:00:00",NJOBS=job_number)
+    else:
+        print "Warning: walltime for %s cluster not set. Setting it to 1h."%batch_cluster
+        gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=executable_path,WALLTIME="1:00:00",NJOBS=job_number)
+    gc_path =  os.path.join(workdir_path,"grid_control_{}_{}.conf".format(executable,batch_cluster))
+    with open(gc_path, "w") as gc:
+        gc.write(gc_content)
+        gc.close()
+
+
     argument_borders = np.append(np.arange(0,job_number,max_jobs_per_batch),[job_number])
     first_borders = argument_borders[:-1]
     last_borders = argument_borders[1:] -1
@@ -174,7 +194,9 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     print
     print "\n".join(printout_list)
     print
-
+    print "Or with grid-control:"
+    print "go.py {} -Gc".format(gc_path)
+    print
     with open(jobdb_path,"w") as db:
         db.write(json.dumps(job_database, sort_keys=True, indent=2))
         db.close()
