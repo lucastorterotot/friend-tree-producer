@@ -31,6 +31,7 @@ if [ $1 -eq {JOBNUMBER} ]; then
 fi
 '''
 
+
 def write_trees_to_files(info):
     nick = info[0]
     collection_path = info[1]
@@ -135,10 +136,15 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     commands = "\n".join(commandlist)
     shellscript_content = shellscript_template.format(COMMANDS=commands,TASKDIR=workdir_path)
     executable_path = os.path.join(workdir_path,"condor_"+executable+".sh")
+    gc_executable_path = os.path.join(workdir_path,"condor_"+executable+"_forGC.sh")
     jobdb_path = os.path.join(workdir_path,"condor_"+executable+".json")
     datasetdb_path = os.path.join(workdir_path,"dataset.json")
     with open(executable_path,"w") as shellscript:
         shellscript.write(shellscript_content)
+        os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
+        shellscript.close()
+    with open(gc_executable_path,"w") as shellscript:
+        shellscript.write(shellscript_content.replace("$1","$FRIEND_TREE_ARGUMENT"))
         os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
         shellscript.close()
     condorjdl_template_path = os.path.join(os.environ["CMSSW_BASE"],"src/HiggsAnalysis/friend-tree-producer/data/submit_condor_%s.jdl"%batch_cluster)
@@ -150,13 +156,13 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     gc_template = gc_template_file.read()
     if walltime > 0:
         if walltime < 86399:
-            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=executable_path,WALLTIME=time.strftime("%H:%M:%S", time.gmtime(walltime)),NJOBS=job_number)
+            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME=time.strftime("%H:%M:%S", time.gmtime(walltime)),NJOBS=job_number)
         else: 
             print "Warning: Please set walltimes greater than 24 hours manually in gc config."
-            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=executable_path,WALLTIME="24:00:00",NJOBS=job_number)
+            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="24:00:00",NJOBS=job_number)
     else:
         print "Warning: walltime for %s cluster not set. Setting it to 1h."%batch_cluster
-        gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=executable_path,WALLTIME="1:00:00",NJOBS=job_number)
+        gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="1:00:00",NJOBS=job_number)
     gc_path =  os.path.join(workdir_path,"grid_control_{}_{}.conf".format(executable,batch_cluster))
     with open(gc_path, "w") as gc:
         gc.write(gc_content)
