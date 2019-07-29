@@ -283,7 +283,10 @@ def check_and_resubmit(executable,custom_workdir_path):
         for line in lines:
             if not "FRIEND_TREE_ARGUMENT type" in line:
                 if not "FRIEND_TREE_ARGUMENT = range" in line:
-                    gc_resubmit.write(line)
+                    if "workdir = " in line:
+                        gc_resubmit.write(line.replace("gc_workdir","gc_workdir_resubmit"))
+                    else:
+                        gc_resubmit.write(line)
                 else: 
                     gc_resubmit.write("FRIEND_TREE_ARGUMENT = {}".format(" ".join([str(arg) for arg in job_to_resubmit])))
 
