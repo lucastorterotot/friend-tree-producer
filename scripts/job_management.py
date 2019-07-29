@@ -163,7 +163,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     else:
         print "Warning: walltime for %s cluster not set. Setting it to 1h."%batch_cluster
         gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="1:00:00",NJOBS=job_number)
-    gc_path =  os.path.join(workdir_path,"grid_control_{}_{}.conf".format(executable,batch_cluster))
+    gc_path =  os.path.join(workdir_path,"grid_control_{}.conf".format(executable))
     with open(gc_path, "w") as gc:
         gc.write(gc_content)
         gc.close()
@@ -274,11 +274,27 @@ def check_and_resubmit(executable,custom_workdir_path):
     with open(condor_jdl_resubmit_path, "w") as file:
         file.write(condor_jdl_resubmit)
         file.close
+
+    gc_path = os.path.join(workdir_path,"grid_control_{}.conf".format(executable))
+    gc_file = open(gc_path, "r")
+    lines = gc_file.readlines()
+    gc_resubmit_path = os.path.join(workdir_path,"grid_control_{}_resubmit.conf".format(executable))
+    with open(gc_resubmit_path, "w") as gc_resubmit:
+        for line in lines:
+            if not "FRIEND_TREE_ARGUMENT type" in line:
+                if not "FRIEND_TREE_ARGUMENT = range" in line:
+                    gc_resubmit.write(line)
+                else: 
+                    gc_resubmit.write("FRIEND_TREE_ARGUMENT = {}".format(" ".join([str(arg) for arg in job_to_resubmit])))
+
     print
     print "To run the resubmission, check {} first".format(condor_jdl_resubmit_path)
     print "Command:"
     print "cd {TASKDIR}; condor_submit {CONDORJDL}".format(TASKDIR=workdir_path, CONDORJDL=condor_jdl_resubmit_path)
-
+    print 
+    print "Or with grid-control:"
+    print "go.py {} -Gc".format(gc_resubmit_path)
+    print 
 
 def extract_friend_paths(packed_paths):
     extracted_paths = {
