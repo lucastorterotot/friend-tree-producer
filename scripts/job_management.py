@@ -10,7 +10,10 @@ import stat
 import re
 import copy
 import time
+from XRootD import client
+from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 from multiprocessing import Pool
+import fnmatch
 
 
 r.gROOT.ProcessLine( "gErrorIgnoreLevel = 2001;")
@@ -24,6 +27,19 @@ cd {TASKDIR}
 {COMMANDS}
 
 '''
+
+server_xrootd = {
+    "GridKA" : "root://cmsxrootd-kit.gridka.de:1094/",
+    "DESY" : "root://cmsxrootd-kit.gridka.de:1094/",
+    "RWTH" : "root://cmsxrootd-kit.gridka.de:1094/",
+    "EOS" : "root://eosuser.cern.ch:1094/",
+}
+
+server_srm = {
+    "GridKA" : "srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/",
+    "DESY" : "srm://dcache-se-cms.desy.de:8443/srm/managerv2?SFN=/pnfs/desy.de/cms/tier2/",
+    "RWTH" : "srm://grid-srm.physik.rwth-aachen.de:8443/srm/managerv2\?SFN=/pnfs/physik.rwth-aachen.de/cms/",
+}
 
 command_template = '''
 if [ $1 -eq {JOBNUMBER} ]; then
@@ -68,6 +84,7 @@ def check_output_files(f):
             os.remove(f)
     return valid_file
 
+#def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, output_server_xrootd, output_server_srm):
 def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts):
     ntuple_database = {}
     for f in input_ntuples_list:
@@ -75,7 +92,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         nick = f.split("/")[-1].replace(".root","")
         print "Saving inputs for %s"%nick
         if "SingleMuon_Run" in nick or "MuTauFinalState" in nick:
-            restrict_to_channels_file = list(set(['mt']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['mt']
+            restrict_to_channels_file = list(set(['mt','mm']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['mt','mm']
             print "\tWarning: restrict %s to '%s' channel(s)"%(nick,restrict_to_channels_file)
         if "SingleElectron_Run" in nick or "EGamma_Run" in nick or "ElTauFinalState" in nick:
             restrict_to_channels_file = list(set(['et']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['et']
@@ -335,11 +352,17 @@ def main():
     parser.add_argument('--batch_cluster',required=True, choices=['naf','etp6','etp7','lxplus6','lxplus7'], help='Batch system cluster to be used.')
     parser.add_argument('--command',required=True, choices=['submit','collect','check'], help='Command to be done by the job manager.')
     parser.add_argument('--input_ntuples_directory',required=True, help='Directory where the input files can be found. The file structure in the directory should match */*.root wildcard.')
-    parser.add_argument('--friend_ntuples_directories', nargs='+', default=[], help='Directory where the friend files can be found. The file structure in the directory should match the one of the base ntuples. Channel dependent parts of the path can be inserted like /commonpath/{et:et_folder,mt:mt_folder,tt:tt_folder}/commonpath.')
     parser.add_argument('--events_per_job',required=True, type=int, help='Event to be processed by each job')
+    parser.add_argument('--cmssw_tarball',required=True, help='Path to the tarball of this CMSSW working setup.')
+
+    parser.add_argument('--friend_ntuples_directories', nargs='+', default=[], help='Directory where the friend files can be found. The file structure in the directory should match the one of the base ntuples. Channel dependent parts of the path can be inserted like /commonpath/{et:et_folder,mt:mt_folder,tt:tt_folder}/commonpath.')
     parser.add_argument('--walltime',default=-1, type=int, help='Walltime to be set for the job (in seconds). If negative, then it will not be set. [Default: %(default)s]')
     parser.add_argument('--cores',default=5, type=int, help='Number of cores to be used for the collect command. [Default: %(default)s]')
     parser.add_argument('--max_jobs_per_batch',default=10000, type=int, help='Maximal number of job per batch. [Default: %(default)s]')
+    parser.add_argument('--mode',default='local',choices=['local','xrootd'], type=str, help='Definition of file access')
+    parser.add_argument('--input_server',default='GridKA',choices=['GridKA','DESY', 'EOS', 'RWTH'], type=str, help='Definition of server for inputs')
+    parser.add_argument('--output_server_xrootd',default='GridKA',choices=['GridKA','DESY', 'RWTH'], type=str, help='Definition of xrootd server for ouputs')
+    parser.add_argument('--output_server_srm',default='GridKA',choices=['GridKA','DESY', 'RWTH'], type=str, help='Definition of srm server for outputs')
     parser.add_argument('--extended_file_access',default=None, type=str, help='Additional prefix for the file access, e.g. via xrootd.')
     parser.add_argument('--custom_workdir_path',default=None, type=str, help='Absolute path to a workdir directory different from $CMSSW_BASE/src.')
     parser.add_argument('--restrict_to_channels', nargs='+', default=[], help='Produce friends only for certain channels')
@@ -347,19 +370,36 @@ def main():
     parser.add_argument('--restrict_to_samples_wildcards', nargs='+', default=[], help='Produce friends only for samples matching the path wildcard')
 
     args = parser.parse_args()
-    if len(args.restrict_to_samples_wildcards) == 0:
-        args.restrict_to_samples_wildcards.append("*")
     input_ntuples_list = []
-    for wildcard in args.restrict_to_samples_wildcards:
-        input_ntuples_list += glob.glob(os.path.join(args.input_ntuples_directory,wildcard,"*.root"))
+    if args.mode == 'local':
+        if len(args.restrict_to_samples_wildcards) == 0:
+            args.restrict_to_samples_wildcards.append("*")
+        for wildcard in args.restrict_to_samples_wildcards:
+            input_ntuples_list += glob.glob(os.path.join(args.input_ntuples_directory,wildcard,"*.root"))
+        if args.extended_file_access:
+            input_ntuples_list = ["/".join([args.extended_file_access,f]) for f in input_ntuples_list]
+    elif args.mode == 'xrootd':
+        myclient = client.FileSystem(server_xrootd[args.input_server])
+        status, listing = myclient.dirlist(args.input_ntuples_directory, DirListFlags.STAT)
+        dataset_dirs = [ entry.name for entry in listing]
+        all_files = []
+        for sd in dataset_dirs:
+            dataset_dir = os.path.join(args.input_ntuples_directory,sd)
+            s, dataset_listing = myclient.dirlist(dataset_dir, DirListFlags.STAT)
+            all_files += ["root://"+f.hostaddr+"/"+os.path.join(dataset_listing.parent,f.name) for f in dataset_listing]
+        if len(args.restrict_to_samples_wildcards) == 0:
+            args.restrict_to_samples_wildcards.append("*")
+        for wildcard in args.restrict_to_samples_wildcards:
+            input_ntuples_list += fnmatch.filter(all_files,wildcard)
+
     extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
-    if args.extended_file_access:
-        input_ntuples_list = ["/".join([args.extended_file_access,f]) for f in input_ntuples_list]
     if args.command == "submit":
+        #prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.output_server_xrootd, output_server_srm)
         prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts)
     elif args.command == "collect":
         collect_outputs(args.executable, args.cores, args.custom_workdir_path)
     elif args.command == "check":
         check_and_resubmit(args.executable, args.custom_workdir_path)
+
 if __name__ == "__main__":
     main()
