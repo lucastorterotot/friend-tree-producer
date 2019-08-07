@@ -130,6 +130,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
                     job_database[job_number]["tree"] = "ntuple"
                     job_database[job_number]["first_entry"] = first
                     job_database[job_number]["last_entry"] = last
+                    job_database[job_number]["status"] = "submitted"
                     channel = p.split("_")[0]
                     if channel in inputs_friends_folders.keys() and len(inputs_friends_folders[channel])>0:
                         job_database[job_number]["input_friends"] = " ".join([job_database[job_number]["input"].replace(inputs_base_folder, friend_folder) for friend_folder in inputs_friends_folders[channel]])
@@ -274,10 +275,14 @@ def check_and_resubmit(executable,custom_workdir_path):
         tree = jobdb[str(jobnumber)]["tree"]
         first = jobdb[str(jobnumber)]["first_entry"]
         last = jobdb[str(jobnumber)]["last_entry"]
+        status = jobdb[str(jobnumber)]["status"]
         filename = "_".join([nick,pipeline,str(first),str(last)])+".root"
         filepath = os.path.join(workdir_path,nick,filename)
-        if not check_output_files(filepath):
-            job_to_resubmit.append(jobnumber)
+        if status != "complete":
+            if not check_output_files(filepath):
+                job_to_resubmit.append(jobnumber)
+            else:
+                jobdb[str(jobnumber)]["status"] = "complete"
     with open(arguments_path, "w") as arguments_file:
         arguments_file.write("\n".join([str(arg) for arg in job_to_resubmit]))
         arguments_file.close()
@@ -315,6 +320,9 @@ def check_and_resubmit(executable,custom_workdir_path):
     print "Or with grid-control:"
     print "go.py {} -Gc".format(gc_resubmit_path)
     print 
+    with open(jobdb_path,"w") as db:
+        db.write(json.dumps(jobdb, sort_keys=True, indent=2))
+        db.close()
 
 def extract_friend_paths(packed_paths):
     extracted_paths = {
