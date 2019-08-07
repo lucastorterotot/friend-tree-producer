@@ -353,7 +353,7 @@ def main():
     parser.add_argument('--command',required=True, choices=['submit','collect','check'], help='Command to be done by the job manager.')
     parser.add_argument('--input_ntuples_directory',required=True, help='Directory where the input files can be found. The file structure in the directory should match */*.root wildcard.')
     parser.add_argument('--events_per_job',required=True, type=int, help='Event to be processed by each job')
-    parser.add_argument('--cmssw_tarball',required=True, help='Path to the tarball of this CMSSW working setup.')
+    # parser.add_argument('--cmssw_tarball',required=True, help='Path to the tarball of this CMSSW working setup.')
 
     parser.add_argument('--friend_ntuples_directories', nargs='+', default=[], help='Directory where the friend files can be found. The file structure in the directory should match the one of the base ntuples. Channel dependent parts of the path can be inserted like /commonpath/{et:et_folder,mt:mt_folder,tt:tt_folder}/commonpath.')
     parser.add_argument('--walltime',default=-1, type=int, help='Walltime to be set for the job (in seconds). If negative, then it will not be set. [Default: %(default)s]')
