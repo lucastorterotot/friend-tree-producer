@@ -4,7 +4,7 @@ error                 = {TASKDIR}/logging/{TASKNUMBER}/$(ClusterId).$(ProcId).er
 log                   = {TASKDIR}/logging/{TASKNUMBER}/$(ClusterId).log
 getenv                = true
 on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
-requirements = (OpSysAndVer =?= "CentOS7")
+requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {WALLTIME}
 RequestCpus = 1
 periodic_release =  (NumJobStarts < 3) && ((CurrentTime - EnteredCurrentStatus) > 600)
