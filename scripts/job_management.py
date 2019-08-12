@@ -68,6 +68,7 @@ def write_trees_to_files(info):
 
 def check_output_files(f):
     valid_file = True
+    print "Checking: ",f
     if not os.path.exists(f):
         valid_file = False
         print "File not there:",f
@@ -147,7 +148,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         os.mkdir(os.path.join(workdir_path,"logging"))
     commandlist = []
     for jobnumber in job_database:
-        options = " ".join(["--"+k+" "+str(v) for (k,v) in job_database[jobnumber].items()])
+        options = " ".join(["--"+k+" "+str(v) for (k,v) in job_database[jobnumber].items() if k != "status" ])
         commandline = "{EXEC} {OPTIONS}".format(EXEC=executable, OPTIONS=options)
         command = command_template.format(JOBNUMBER=str(jobnumber), COMMAND=commandline)
         commandlist.append(command)
