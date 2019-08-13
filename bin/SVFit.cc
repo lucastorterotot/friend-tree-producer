@@ -49,6 +49,7 @@ int main(int argc, char** argv)
   std::string tree = "ntuple";
   int first_entry = 0;
   int last_entry = -1;
+  bool organize_outputs = true;
   po::variables_map vm;
   po::options_description config("configuration");
   config.add_options()
@@ -57,7 +58,8 @@ int main(int argc, char** argv)
     ("folder", po::value<std::string>(&folder)->default_value(folder))
     ("tree", po::value<std::string>(&tree)->default_value(tree))
     ("first_entry", po::value<int>(&first_entry)->default_value(first_entry))
-    ("last_entry", po::value<int>(&last_entry)->default_value(last_entry));
+    ("last_entry", po::value<int>(&last_entry)->default_value(last_entry))
+    ("organize_outputs", po::value<bool>(&organize_outputs)->default_value(organize_outputs));
   po::store(po::command_line_parser(argc, argv).options(config).run(), vm);
   po::notify(vm);
 
@@ -136,8 +138,8 @@ int main(int argc, char** argv)
   }
 
   // Initialize output file
-  std::string outputname = outputname_from_settings(input, folder, first_entry, last_entry, output_dir);
-  boost::filesystem::create_directories(filename_from_inputpath(input));
+  std::string outputname = outputname_from_settings(input, folder, first_entry, last_entry, output_dir, organize_outputs);
+  if(organize_outputs) boost::filesystem::create_directories(filename_from_inputpath(input));
   TFile* out = TFile::Open(outputname.c_str(), "recreate");
   out->mkdir(folder.c_str());
   out->cd(folder.c_str());

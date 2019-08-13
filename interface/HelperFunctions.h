@@ -20,11 +20,18 @@ std::string filename_from_inputpath(std::string input)
     return filename;
 }
 
-std::string outputname_from_settings(std::string input, std::string folder, unsigned int first_entry, unsigned int last_entry,  fs::path output_dir="")
+std::string outputname_from_settings(std::string input, std::string folder, unsigned int first_entry, unsigned int last_entry,  fs::path output_dir="", bool organize_outputs = true)
 {
     std::string filename = filename_from_inputpath(input);
-    std::string outputname = filename + "/" + filename + "_" + folder + "_" + std::to_string(first_entry) + "_" + std::to_string(last_entry) + ".root";
-    fs::path full_path = output_dir / outputname;
+    fs::path full_path = "";
+    if(organize_outputs) {
+        std::string outputname = filename + "/" + filename + "_" + folder + "_" + std::to_string(first_entry) + "_" + std::to_string(last_entry) + ".root";
+        full_path = output_dir / outputname;
+    }
+    else {
+        std::string outputname = filename + "_" + folder + "_" + std::to_string(first_entry) + "_" + std::to_string(last_entry) + ".root";
+        full_path = outputname;
+    }
     return full_path.string();
 }
 

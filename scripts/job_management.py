@@ -66,27 +66,34 @@ def write_trees_to_files(info):
             db[nick][p].Reset()
     outputfile.Close()
 
-def check_output_files(f):
+def check_output_files(f, mode):
     valid_file = True
     print "Checking: ",f
-    if not os.path.exists(f):
-        valid_file = False
-        print "File not there:",f
-    else:
-        F = r.TFile.Open(f, "read")
-        if F:
-            valid_file = not F.IsZombie() and not F.TestBit(r.TFile.kRecovered)
-            F.Close()
-        else:
-            F.Close()
+    if mode=="local":
+        if not os.path.exists(f):
             valid_file = False
-        if not valid_file:
-            print "File is corrupt: ",f
-            os.remove(f)
+            print "File not there:",f
+        else:
+            F = r.TFile.Open(f, "read")
+            if F:
+                valid_file = not F.IsZombie() and not F.TestBit(r.TFile.kRecovered)
+                F.Close()
+            else:
+                F.Close()
+                valid_file = False
+            if not valid_file:
+                print "File is corrupt: ",f
+                os.remove(f)
+    elif mode == 'xrootd':
+        myclient = client.FileSystem(server_xrootd["GridKA"])
+        status, info = myclient.stat(f)
+        if not info:
+            print "File not there:",f
+            valid_file = False
     return valid_file
 
-#def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, output_server_xrootd, output_server_srm):
-def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts):
+
+def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm):
     ntuple_database = {}
     for f in input_ntuples_list:
         restrict_to_channels_file = copy.deepcopy(restrict_to_channels)
@@ -139,6 +146,8 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
             else:
                 print "Warning: %s has no entries in pipeline %s"%(nick,p)
     if custom_workdir_path:
+        if not os.path.exists(custom_workdir_path):
+            os.mkdir(custom_workdir_path)
         workdir_path = os.path.join(custom_workdir_path,executable+"_workdir")
     else:
         workdir_path = os.path.join(os.environ["CMSSW_BASE"],"src",executable+"_workdir")
@@ -149,6 +158,8 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     commandlist = []
     for jobnumber in job_database:
         options = " ".join(["--"+k+" "+str(v) for (k,v) in job_database[jobnumber].items() if k != "status" ])
+        if mode == 'xrootd':
+            options += " --organize_outputs=false"
         commandline = "{EXEC} {OPTIONS}".format(EXEC=executable, OPTIONS=options)
         command = command_template.format(JOBNUMBER=str(jobnumber), COMMAND=commandline)
         commandlist.append(command)
@@ -166,22 +177,37 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         shellscript.write(shellscript_content.replace("$1","$FRIEND_TREE_ARGUMENT"))
         os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
         shellscript.close()
+    if mode == 'xrootd':
+        gc_date_tag = "{}_{}".format(executable, time.strftime("%Y-%m-%d_%H-%M-%S"))
+        os.mkdir(os.path.join(os.environ["CMSSW_BASE"],"src",gc_date_tag))
+        with open(os.path.join(os.environ["CMSSW_BASE"],"src",gc_date_tag,"condor_{}_forGC.sh".format(executable)),"w") as shellscript:
+            shellscript.write(shellscript_content.replace("$1","$FRIEND_TREE_ARGUMENT").replace("cd {TASKDIR}\n".format(TASKDIR=workdir_path),""))
+            os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
+            shellscript.close()
+        gc_executable_path = "$CMSSW_BASE/src/{}/condor_{}_forGC.sh".format(gc_date_tag, executable)
     condorjdl_template_path = os.path.join(os.environ["CMSSW_BASE"],"src/HiggsAnalysis/friend-tree-producer/data/submit_condor_%s.jdl"%batch_cluster)
     condorjdl_template_file = open(condorjdl_template_path,"r")
     condorjdl_template = condorjdl_template_file.read()
-
+    if mode == 'local':
+        gc_storage_dir = workdir_path
+        extra_se_info = ""
+    elif mode == 'xrootd':
+        gc_storage_dir = server_srm[output_server_srm]+"store/user/{}/gc_storage/{}".format(os.environ["USER"], gc_date_tag)
+        extra_se_info = "se output files = *.root\nse output pattern = @XBASE@.@XEXT@"
     gc_template_path = os.path.join(os.environ["CMSSW_BASE"],"src/HiggsAnalysis/friend-tree-producer/data/grid-control_%s.conf"%batch_cluster)
     gc_template_file = open(gc_template_path, "r")
     gc_template = gc_template_file.read()
     if walltime > 0:
         if walltime < 86399:
-            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME=time.strftime("%H:%M:%S", time.gmtime(walltime)),NJOBS=job_number)
+            gc_content = gc_template.format(STORAGE_DIR=gc_storage_dir,EXTRA_SE_INFO=extra_se_info,TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME=time.strftime("%H:%M:%S", time.gmtime(walltime)),NJOBS=job_number)
         else: 
             print "Warning: Please set walltimes greater than 24 hours manually in gc config."
-            gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="24:00:00",NJOBS=job_number)
+            gc_content = gc_template.format(STORAGE_DIR=gc_storage_dir,EXTRA_SE_INFO=extra_se_info,TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="24:00:00",NJOBS=job_number)
     else:
         print "Warning: walltime for %s cluster not set. Setting it to 1h."%batch_cluster
-        gc_content = gc_template.format(TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="1:00:00",NJOBS=job_number)
+        gc_content = gc_template.format(STORAGE_DIR=gc_storage_dir,EXTRA_SE_INFO=extra_se_info,TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="1:00:00",NJOBS=job_number)
+    if mode == 'xrootd':
+        gc_content = gc_content.replace("&&(TARGET.ProvidesEKPResources==True)","")
     gc_path =  os.path.join(workdir_path,"grid_control_{}.conf".format(executable))
     with open(gc_path, "w") as gc:
         gc.write(gc_content)
@@ -229,13 +255,14 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         datasets.write(json.dumps(ntuple_database, sort_keys=True, indent=2))
         datasets.close()
 
-def collect_outputs(executable,cores,custom_workdir_path):
+def collect_outputs(executable,cores,custom_workdir_path ,mode):
     if custom_workdir_path:
         workdir_path = os.path.join(custom_workdir_path,executable+"_workdir")
     else:
         workdir_path = os.path.join(os.environ["CMSSW_BASE"],"src",executable+"_workdir")
     jobdb_path = os.path.join(workdir_path,"condor_"+executable+".json")
     datasetdb_path = os.path.join(workdir_path,"dataset.json")
+    gc_path =  os.path.join(workdir_path,"grid_control_{}.conf".format(executable))
     jobdb_file = open(jobdb_path,"r")
     jobdb = json.loads(jobdb_file.read())
     datasetdb_file = open(datasetdb_path,"r")
@@ -250,20 +277,32 @@ def collect_outputs(executable,cores,custom_workdir_path):
         first = jobdb[str(jobnumber)]["first_entry"]
         last = jobdb[str(jobnumber)]["last_entry"]
         filename = "_".join([nick,pipeline,str(first),str(last)])+".root"
-        filepath = os.path.join(workdir_path,nick,filename)
+        if mode=="local":
+            filepath = os.path.join(workdir_path,nick,filename)
+        elif mode=="xrootd":
+            with open(gc_path, "r") as gc_file:
+                for line in gc_file.readlines():
+                    if "se path" in line:
+                        filepath = server_xrootd["GridKA"]+"/store/"+line.split("/store/")[1].strip("\n")+"/"+filename
+                        break
         datasetdb[nick].setdefault(pipeline,r.TChain("/".join([pipeline,tree]))).Add(filepath)
 
     nicks = sorted(datasetdb)
-    pool = Pool(cores)
-    pool.map(write_trees_to_files, zip(nicks,[collection_path]*len(nicks), [datasetdb]*len(nicks)))
-
-def check_and_resubmit(executable,custom_workdir_path):
+    if mode=="local":
+        pool = Pool(cores)
+        pool.map(write_trees_to_files, zip(nicks,[collection_path]*len(nicks), [datasetdb]*len(nicks)))
+    elif mode=="xrootd": # it did not complete when using Pool in xrootd mode
+        for nick in nicks:
+            write_trees_to_files([nick, collection_path, datasetdb])
+            
+def check_and_resubmit(executable,custom_workdir_path, mode):
     if custom_workdir_path:
         workdir_path = os.path.join(custom_workdir_path,executable+"_workdir")
     else:
         workdir_path = os.path.join(os.environ["CMSSW_BASE"],"src",executable+"_workdir")
     jobdb_path = os.path.join(workdir_path,"condor_"+executable+".json")
     datasetdb_path = os.path.join(workdir_path,"dataset.json")
+    gc_path = os.path.join(workdir_path,"grid_control_{}.conf".format(executable))
     jobdb_file = open(jobdb_path,"r")
     jobdb = json.loads(jobdb_file.read())
     datasetdb_file = open(datasetdb_path,"r")
@@ -278,9 +317,16 @@ def check_and_resubmit(executable,custom_workdir_path):
         last = jobdb[str(jobnumber)]["last_entry"]
         status = jobdb[str(jobnumber)]["status"]
         filename = "_".join([nick,pipeline,str(first),str(last)])+".root"
-        filepath = os.path.join(workdir_path,nick,filename)
+        if mode=="local":
+            filepath = os.path.join(workdir_path,nick,filename)
+        elif mode=="xrootd":
+            with open(gc_path, "r") as gc_file:
+                for line in gc_file.readlines():
+                    if "se path" in line:
+                        filepath = "/store/"+line.split("/store/")[1].strip("\n")+"/"+filename
+                        break
         if status != "complete":
-            if not check_output_files(filepath):
+            if not check_output_files(filepath, mode):
                 job_to_resubmit.append(jobnumber)
             else:
                 jobdb[str(jobnumber)]["status"] = "complete"
@@ -298,7 +344,6 @@ def check_and_resubmit(executable,custom_workdir_path):
         file.write(condor_jdl_resubmit)
         file.close
 
-    gc_path = os.path.join(workdir_path,"grid_control_{}.conf".format(executable))
     gc_file = open(gc_path, "r")
     lines = gc_file.readlines()
     gc_resubmit_path = os.path.join(workdir_path,"grid_control_{}_resubmit.conf".format(executable))
@@ -362,8 +407,6 @@ def main():
     parser.add_argument('--command',required=True, choices=['submit','collect','check'], help='Command to be done by the job manager.')
     parser.add_argument('--input_ntuples_directory',required=True, help='Directory where the input files can be found. The file structure in the directory should match */*.root wildcard.')
     parser.add_argument('--events_per_job',required=True, type=int, help='Event to be processed by each job')
-    # parser.add_argument('--cmssw_tarball',required=True, help='Path to the tarball of this CMSSW working setup.')
-
     parser.add_argument('--friend_ntuples_directories', nargs='+', default=[], help='Directory where the friend files can be found. The file structure in the directory should match the one of the base ntuples. Channel dependent parts of the path can be inserted like /commonpath/{et:et_folder,mt:mt_folder,tt:tt_folder}/commonpath.')
     parser.add_argument('--walltime',default=-1, type=int, help='Walltime to be set for the job (in seconds). If negative, then it will not be set. [Default: %(default)s]')
     parser.add_argument('--cores',default=5, type=int, help='Number of cores to be used for the collect command. [Default: %(default)s]')
@@ -380,35 +423,42 @@ def main():
 
     args = parser.parse_args()
     input_ntuples_list = []
-    if args.mode == 'local':
-        if len(args.restrict_to_samples_wildcards) == 0:
-            args.restrict_to_samples_wildcards.append("*")
-        for wildcard in args.restrict_to_samples_wildcards:
-            input_ntuples_list += glob.glob(os.path.join(args.input_ntuples_directory,wildcard,"*.root"))
-        if args.extended_file_access:
-            input_ntuples_list = ["/".join([args.extended_file_access,f]) for f in input_ntuples_list]
-    elif args.mode == 'xrootd':
-        myclient = client.FileSystem(server_xrootd[args.input_server])
-        status, listing = myclient.dirlist(args.input_ntuples_directory, DirListFlags.STAT)
-        dataset_dirs = [ entry.name for entry in listing]
-        all_files = []
-        for sd in dataset_dirs:
-            dataset_dir = os.path.join(args.input_ntuples_directory,sd)
-            s, dataset_listing = myclient.dirlist(dataset_dir, DirListFlags.STAT)
-            all_files += ["root://"+f.hostaddr+"/"+os.path.join(dataset_listing.parent,f.name) for f in dataset_listing]
-        if len(args.restrict_to_samples_wildcards) == 0:
-            args.restrict_to_samples_wildcards.append("*")
-        for wildcard in args.restrict_to_samples_wildcards:
-            input_ntuples_list += fnmatch.filter(all_files,wildcard)
-
-    extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
+    #TODO: Expand functionalities for remote access
+    if args.mode == "xrootd":
+        if args.executable != "SVFit":
+            print "Remote access currently only works for SVFit computation."
+            exit()
+        if args.input_server != "GridKA":
+            print "Remote access currently only works for input files on Gridka."
+            exit()
     if args.command == "submit":
-        #prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.output_server_xrootd, output_server_srm)
-        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts)
+        if args.mode == 'local':
+            if len(args.restrict_to_samples_wildcards) == 0:
+                args.restrict_to_samples_wildcards.append("*")
+            for wildcard in args.restrict_to_samples_wildcards:
+                input_ntuples_list += glob.glob(os.path.join(args.input_ntuples_directory,wildcard,"*.root"))
+            if args.extended_file_access:
+                input_ntuples_list = ["/".join([args.extended_file_access,f]) for f in input_ntuples_list]
+        elif args.mode == 'xrootd':
+            myclient = client.FileSystem(server_xrootd[args.input_server])
+            status, listing = myclient.dirlist(args.input_ntuples_directory, DirListFlags.STAT)
+            dataset_dirs = [ entry.name for entry in listing]
+            all_files = []
+            for sd in dataset_dirs:
+                dataset_dir = os.path.join(args.input_ntuples_directory,sd)
+                s, dataset_listing = myclient.dirlist(dataset_dir, DirListFlags.STAT)
+                all_files += ["root://"+f.hostaddr+"/"+os.path.join(dataset_listing.parent,f.name) for f in dataset_listing]
+            if len(args.restrict_to_samples_wildcards) == 0:
+                args.restrict_to_samples_wildcards.append("*")
+            for wildcard in args.restrict_to_samples_wildcards:
+                input_ntuples_list += fnmatch.filter(all_files,wildcard)
+
+        extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
+        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd)
     elif args.command == "collect":
-        collect_outputs(args.executable, args.cores, args.custom_workdir_path)
+        collect_outputs(args.executable, args.cores, args.custom_workdir_path, args.mode)
     elif args.command == "check":
-        check_and_resubmit(args.executable, args.custom_workdir_path)
+        check_and_resubmit(args.executable, args.custom_workdir_path, args.mode)
 
 if __name__ == "__main__":
     main()
