@@ -59,7 +59,7 @@ git clone https://github.com/KIT-CMS/fake-factor-application.git HiggsAnalysis/f
 
 ### Checkout of friend tree producer setup
 git clone https://github.com/KIT-CMS/friend-tree-producer.git HiggsAnalysis/friend-tree-producer
-
+git clone https://github.com/KIT-CMS/grid-control
 # Data sources
 mkdir HiggsAnalysis/friend-tree-producer/data/input_params
 cd HiggsAnalysis/friend-tree-producer/data/input_params
