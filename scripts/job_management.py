@@ -174,14 +174,14 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
         shellscript.close()
     with open(gc_executable_path,"w") as shellscript:
-        shellscript.write(shellscript_content.replace("$1","$FRIEND_TREE_ARGUMENT"))
+        shellscript.write(shellscript_content.replace("$1","$GC_JOB_ID"))
         os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
         shellscript.close()
     if mode == 'xrootd':
         gc_date_tag = "{}_{}".format(executable, time.strftime("%Y-%m-%d_%H-%M-%S"))
         os.mkdir(os.path.join(os.environ["CMSSW_BASE"],"src",gc_date_tag))
         with open(os.path.join(os.environ["CMSSW_BASE"],"src",gc_date_tag,"condor_{}_forGC.sh".format(executable)),"w") as shellscript:
-            shellscript.write(shellscript_content.replace("$1","$FRIEND_TREE_ARGUMENT").replace("cd {TASKDIR}\n".format(TASKDIR=workdir_path),""))
+            shellscript.write(shellscript_content.replace("$1","$GC_JOB_ID").replace("cd {TASKDIR}\n".format(TASKDIR=workdir_path),""))
             os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
             shellscript.close()
         gc_executable_path = "$CMSSW_BASE/src/{}/condor_{}_forGC.sh".format(gc_date_tag, executable)
@@ -305,8 +305,6 @@ def check_and_resubmit(executable,custom_workdir_path, mode):
     gc_path = os.path.join(workdir_path,"grid_control_{}.conf".format(executable))
     jobdb_file = open(jobdb_path,"r")
     jobdb = json.loads(jobdb_file.read())
-    datasetdb_file = open(datasetdb_path,"r")
-    datasetdb = json.loads(datasetdb_file.read())
     arguments_path = os.path.join(workdir_path,"arguments_resubmit.txt")
     job_to_resubmit = []
     for jobnumber in sorted([int(k) for k in jobdb]):
@@ -343,28 +341,10 @@ def check_and_resubmit(executable,custom_workdir_path, mode):
     with open(condor_jdl_resubmit_path, "w") as file:
         file.write(condor_jdl_resubmit)
         file.close
-
-    gc_file = open(gc_path, "r")
-    lines = gc_file.readlines()
-    gc_resubmit_path = os.path.join(workdir_path,"grid_control_{}_resubmit.conf".format(executable))
-    with open(gc_resubmit_path, "w") as gc_resubmit:
-        for line in lines:
-            if not "FRIEND_TREE_ARGUMENT type" in line:
-                if not "FRIEND_TREE_ARGUMENT = range" in line:
-                    if "workdir = " in line:
-                        gc_resubmit.write(line.replace("gc_workdir","gc_workdir_resubmit"))
-                    else:
-                        gc_resubmit.write(line)
-                else: 
-                    gc_resubmit.write("FRIEND_TREE_ARGUMENT = {}".format(" ".join([str(arg) for arg in job_to_resubmit])))
-
     print
     print "To run the resubmission, check {} first".format(condor_jdl_resubmit_path)
     print "Command:"
     print "cd {TASKDIR}; condor_submit {CONDORJDL}".format(TASKDIR=workdir_path, CONDORJDL=condor_jdl_resubmit_path)
-    print 
-    print "Or with grid-control:"
-    print "go.py {} -Gc".format(gc_resubmit_path)
     print 
     with open(jobdb_path,"w") as db:
         db.write(json.dumps(jobdb, sort_keys=True, indent=2))
