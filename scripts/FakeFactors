@@ -73,20 +73,24 @@ def parse_arguments():
         help=
         "Enable loggging for debug purposes."
     )
+    parser.add_argument(
+        "--cmsswbase",
+        default=os.environ['CMSSW_BASE'],
+        help=
+        "Set path for to local cmssw for submission with Grid-Control"
+    )
     return parser.parse_args()
-
 
 def main(args):
 
     nickname = os.path.basename(args.input).replace(".root","")
-    
     # Get path to cmssw and fakefactordatabase
-    cmsswbase = os.environ['CMSSW_BASE']
+    cmsswbase = args.cmsswbase
     fakefactordatabase = {
         "2016" : {
-            "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_ML/tight/et/fakeFactors_tight.root",
-            "mt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_ML/tight/mt/fakeFactors_tight.root",
-            "tt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_ML/tight/tt/fakeFactors_tight.root"
+            "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/et/fakeFactors_tight.root",
+            "mt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/mt/fakeFactors.root",
+            "tt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/tt/fakeFactors_tight.root"
                 },
         "2017" : {
             "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/et/fakeFactors.root",
@@ -124,7 +128,7 @@ def main(args):
         fractions = fractions,
         use_fractions_from_worspace = True,
         configpath = cmsswbase+"/src/HiggsAnalysis/fake-factor-application/config.yaml",
-        expression = "njets_mvis",
+        expression = "m_vis",
         era = era,
         pipeline_selection = args.folder,
         treename = args.tree,

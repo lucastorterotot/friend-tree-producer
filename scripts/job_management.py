@@ -95,6 +95,7 @@ def check_output_files(f, mode):
 
 def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm):
     ntuple_database = {}
+    cmsswbase = os.environ['CMSSW_BASE']
     for f in input_ntuples_list:
         restrict_to_channels_file = copy.deepcopy(restrict_to_channels)
         nick = f.split("/")[-1].replace(".root","")
@@ -121,6 +122,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
             pipelines = [p for p in pipelines if p.split("_")[1] in restrict_to_shifts]
         ntuple_database[nick]["pipelines"] = {}
         for p in pipelines:
+            print "Pipeline: {}".format(p)
             ntuple_database[nick]["pipelines"][p] = F.Get(p).Get("ntuple").GetEntries()
     job_database = {}
     job_number = 0
@@ -134,6 +136,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
                 for first,last in zip(first_entries, last_entries):
                     job_database[job_number] = {}
                     job_database[job_number]["input"] = ntuple_database[nick]["path"]
+                    if "FakeFactor" in executable: job_database[job_number]["cmsswbase"] = cmsswbase
                     job_database[job_number]["folder"] = p
                     job_database[job_number]["tree"] = "ntuple"
                     job_database[job_number]["first_entry"] = first
@@ -387,6 +390,7 @@ def main():
     parser.add_argument('--command',required=True, choices=['submit','collect','check'], help='Command to be done by the job manager.')
     parser.add_argument('--input_ntuples_directory',required=True, help='Directory where the input files can be found. The file structure in the directory should match */*.root wildcard.')
     parser.add_argument('--events_per_job',required=True, type=int, help='Event to be processed by each job')
+    parser.add_argument('--cmssw_tarball',required=False, help='Path to the tarball of this CMSSW working setup.')
     parser.add_argument('--friend_ntuples_directories', nargs='+', default=[], help='Directory where the friend files can be found. The file structure in the directory should match the one of the base ntuples. Channel dependent parts of the path can be inserted like /commonpath/{et:et_folder,mt:mt_folder,tt:tt_folder}/commonpath.')
     parser.add_argument('--walltime',default=-1, type=int, help='Walltime to be set for the job (in seconds). If negative, then it will not be set. [Default: %(default)s]')
     parser.add_argument('--cores',default=5, type=int, help='Number of cores to be used for the collect command. [Default: %(default)s]')
@@ -427,7 +431,8 @@ def main():
             for sd in dataset_dirs:
                 dataset_dir = os.path.join(args.input_ntuples_directory,sd)
                 s, dataset_listing = myclient.dirlist(dataset_dir, DirListFlags.STAT)
-                all_files += ["root://"+f.hostaddr+"/"+os.path.join(dataset_listing.parent,f.name) for f in dataset_listing]
+                if dataset_listing != None:
+                    all_files += ["root://"+f.hostaddr+"/"+os.path.join(dataset_listing.parent,f.name) for f in dataset_listing]
             if len(args.restrict_to_samples_wildcards) == 0:
                 args.restrict_to_samples_wildcards.append("*")
             for wildcard in args.restrict_to_samples_wildcards:
