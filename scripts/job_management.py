@@ -16,6 +16,7 @@ from multiprocessing import Pool
 import fnmatch
 
 
+r.PyConfig.IgnoreCommandLineOptions = True
 r.gROOT.ProcessLine( "gErrorIgnoreLevel = 2001;")
 
 shellscript_template = '''#!/bin/sh
