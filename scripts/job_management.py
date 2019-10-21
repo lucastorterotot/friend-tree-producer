@@ -14,7 +14,13 @@ from XRootD import client
 from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 from multiprocessing import Pool
 import fnmatch
-
+import logging
+logger = logging.getLogger("job_managment")
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 r.PyConfig.IgnoreCommandLineOptions = True
 r.gROOT.ProcessLine( "gErrorIgnoreLevel = 2001;")
@@ -125,30 +131,66 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         for p in pipelines:
             print "Pipeline: {}".format(p)
             ntuple_database[nick]["pipelines"][p] = F.Get(p).Get("ntuple").GetEntries()
-    job_database = {}
+
+
+    job_database = {0:[]}
     job_number = 0
+    ### var for check if last file was completly processed
+    lastTouchedEntry=-99
+    ####variable for checking if the are still some event of this pipeline that need distributing
+    curNofEventsInJob=0
+    ## iterate over the files
     for nick in ntuple_database:
         for p in ntuple_database[nick]["pipelines"]:
             n_entries = ntuple_database[nick]["pipelines"][p]
             if n_entries > 0:
-                entry_list = np.append(np.arange(0,n_entries,events_per_job),[n_entries])
-                first_entries = entry_list[:-1]
-                last_entries = entry_list[1:] -1
-                for first,last in zip(first_entries, last_entries):
-                    job_database[job_number] = {}
-                    job_database[job_number]["input"] = ntuple_database[nick]["path"]
-                    if "FakeFactor" in executable: job_database[job_number]["cmsswbase"] = cmsswbase
-                    job_database[job_number]["folder"] = p
-                    job_database[job_number]["tree"] = "ntuple"
-                    job_database[job_number]["first_entry"] = first
-                    job_database[job_number]["last_entry"] = last
-                    job_database[job_number]["status"] = "submitted"
+                ####variable for checking if there are still some event of this pipeline that need distributing
+                logger.debug(str("Processing:"+nick.split("_")[1]+"with "+str(n_entries)+" events"))
+                entriesRemainingCurPipe=n_entries
+                while (entriesRemainingCurPipe > 0 ):
+                    ### check if we need to move on the the next job
+                    if curNofEventsInJob==events_per_job:
+                        curNofEventsInJob=0
+                        job_number+=1
+                        job_database[job_number]=[]
+                    else:
+                        pass
+                    job_database[job_number].append({})
+
+                    if lastTouchedEntry==-99:
+                        first=0
+                    else:
+                        first=lastTouchedEntry+1
+                    ## check if the events of this pipeline can be packed in this job
+                    if entriesRemainingCurPipe <= events_per_job-curNofEventsInJob:
+                        last=first+entriesRemainingCurPipe-1
+                        lastTouchedEntry=-99
+                    else:
+                        last=first+(events_per_job-curNofEventsInJob)-1
+                        lastTouchedEntry=last
+                    curNofEventsInJob+=last-first+1
+                    entriesRemainingCurPipe=entriesRemainingCurPipe-(last-first+1)
+                    job_database[job_number][-1]["input"] = ntuple_database[nick]["path"]
+                    if "FakeFactor" in executable: job_database[job_number][-1]["cmsswbase"] = cmsswbase
+                    job_database[job_number][-1]["folder"] = p
+                    job_database[job_number][-1]["tree"] = "ntuple"
+                    job_database[job_number][-1]["first_entry"] = first
+                    job_database[job_number][-1]["last_entry"] = last
+                    job_database[job_number][-1]["status"] = "submitted"
                     channel = p.split("_")[0]
                     if channel in inputs_friends_folders.keys() and len(inputs_friends_folders[channel])>0:
-                        job_database[job_number]["input_friends"] = " ".join([job_database[job_number]["input"].replace(inputs_base_folder, friend_folder) for friend_folder in inputs_friends_folders[channel]])
-                    job_number +=1
+                        job_database[job_number][-1]["input_friends"] = " ".join([job_database[job_number][-1]["input"].replace(inputs_base_folder, friend_folder) for friend_folder in inputs_friends_folders[channel]])
+                    logger.debug(str({"nick":nick,"job_number":job_number,"l/f":(first,last),"lastTouchedEntry":lastTouchedEntry, "curNofEventsInJob":curNofEventsInJob,"entriesRemCurPipe":entriesRemainingCurPipe}))
             else:
                 print "Warning: %s has no entries in pipeline %s"%(nick,p)
+    logger.debug(str("Done creating the job_database"))
+    for j in job_database.keys():
+        logger.debug("Job {}:".format(j))
+        for sj in job_database[j]:
+            logger.debug(str(sj))
+    #### add 1 to the job number, to fix the last job not being exexuted:
+    job_number+=1
+
     if custom_workdir_path:
         if not os.path.exists(custom_workdir_path):
             os.mkdir(custom_workdir_path)
@@ -160,13 +202,14 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     if not os.path.exists(os.path.join(workdir_path,"logging")):
         os.mkdir(os.path.join(workdir_path,"logging"))
     commandlist = []
-    for jobnumber in job_database:
-        options = " ".join(["--"+k+" "+str(v) for (k,v) in job_database[jobnumber].items() if k != "status" ])
-        if mode == 'xrootd':
-            options += " --organize_outputs=false"
-        commandline = "{EXEC} {OPTIONS}".format(EXEC=executable, OPTIONS=options)
-        command = command_template.format(JOBNUMBER=str(jobnumber), COMMAND=commandline)
-        commandlist.append(command)
+    for jobnumber in job_database.keys():
+        for subjobnumber in range(len(job_database[jobnumber])):
+            options = " ".join(["--"+k+" "+str(v) for (k,v) in job_database[jobnumber][subjobnumber].items() if k != "status" ])
+            if mode == 'xrootd':
+                options += " --organize_outputs=false"
+            commandline = "{EXEC} {OPTIONS}".format(EXEC=executable, OPTIONS=options)
+            command = command_template.format(JOBNUMBER=str(jobnumber), COMMAND=commandline)
+            commandlist.append(command)
     commands = "\n".join(commandlist)
     shellscript_content = shellscript_template.format(COMMANDS=commands,TASKDIR=workdir_path)
     executable_path = os.path.join(workdir_path,"condor_"+executable+".sh")
@@ -204,7 +247,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     if walltime > 0:
         if walltime < 86399:
             gc_content = gc_template.format(STORAGE_DIR=gc_storage_dir,EXTRA_SE_INFO=extra_se_info,TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME=time.strftime("%H:%M:%S", time.gmtime(walltime)),NJOBS=job_number)
-        else: 
+        else:
             print "Warning: Please set walltimes greater than 24 hours manually in gc config."
             gc_content = gc_template.format(STORAGE_DIR=gc_storage_dir,EXTRA_SE_INFO=extra_se_info,TASKDIR=workdir_path,EXECUTABLE=gc_executable_path,WALLTIME="24:00:00",NJOBS=job_number)
     else:
@@ -274,22 +317,24 @@ def collect_outputs(executable,cores,custom_workdir_path ,mode):
     collection_path = os.path.join(workdir_path,executable+"_collected")
     if not os.path.exists(collection_path):
         os.mkdir(collection_path)
-    for jobnumber in sorted([int(k) for k in jobdb]):
-        nick = jobdb[str(jobnumber)]["input"].split("/")[-1].replace(".root","")
-        pipeline = jobdb[str(jobnumber)]["folder"]
-        tree = jobdb[str(jobnumber)]["tree"]
-        first = jobdb[str(jobnumber)]["first_entry"]
-        last = jobdb[str(jobnumber)]["last_entry"]
-        filename = "_".join([nick,pipeline,str(first),str(last)])+".root"
-        if mode=="local":
-            filepath = os.path.join(workdir_path,nick,filename)
-        elif mode=="xrootd":
-            with open(gc_path, "r") as gc_file:
-                for line in gc_file.readlines():
-                    if "se path" in line:
-                        filepath = server_xrootd["GridKA"]+"/store/"+line.split("/store/")[1].strip("\n")+"/"+filename
-                        break
-        datasetdb[nick].setdefault(pipeline,r.TChain("/".join([pipeline,tree]))).Add(filepath)
+    print jobdb
+    for jobnumber in sorted([int(k) for k in jobdb.keys()]):
+        for subjobnumber in range(len(jobdb[str(jobnumber)])):
+            nick = jobdb[str(jobnumber)][subjobnumber]["input"].split("/")[-1].replace(".root","")
+            pipeline = jobdb[str(jobnumber)][subjobnumber]["folder"]
+            tree = jobdb[str(jobnumber)][subjobnumber]["tree"]
+            first = jobdb[str(jobnumber)][subjobnumber]["first_entry"]
+            last = jobdb[str(jobnumber)][subjobnumber]["last_entry"]
+            filename = "_".join([nick,pipeline,str(first),str(last)])+".root"
+            if mode=="local":
+                filepath = os.path.join(workdir_path,nick,filename)
+            elif mode=="xrootd":
+                with open(gc_path, "r") as gc_file:
+                    for line in gc_file.readlines():
+                        if "se path" in line:
+                            filepath = server_xrootd["GridKA"]+"/store/"+line.split("/store/")[1].strip("\n")+"/"+filename
+                            break
+            datasetdb[nick].setdefault(pipeline,r.TChain("/".join([pipeline,tree]))).Add(filepath)
 
     nicks = sorted(datasetdb)
     if mode=="local":
@@ -298,7 +343,7 @@ def collect_outputs(executable,cores,custom_workdir_path ,mode):
     elif mode=="xrootd": # it did not complete when using Pool in xrootd mode
         for nick in nicks:
             write_trees_to_files([nick, collection_path, datasetdb])
-            
+
 def check_and_resubmit(executable,custom_workdir_path, mode):
     if custom_workdir_path:
         workdir_path = os.path.join(custom_workdir_path,executable+"_workdir")
@@ -311,27 +356,28 @@ def check_and_resubmit(executable,custom_workdir_path, mode):
     jobdb = json.loads(jobdb_file.read())
     arguments_path = os.path.join(workdir_path,"arguments_resubmit.txt")
     job_to_resubmit = []
-    for jobnumber in sorted([int(k) for k in jobdb]):
-        nick = jobdb[str(jobnumber)]["input"].split("/")[-1].replace(".root","")
-        pipeline = jobdb[str(jobnumber)]["folder"]
-        tree = jobdb[str(jobnumber)]["tree"]
-        first = jobdb[str(jobnumber)]["first_entry"]
-        last = jobdb[str(jobnumber)]["last_entry"]
-        status = jobdb[str(jobnumber)]["status"]
-        filename = "_".join([nick,pipeline,str(first),str(last)])+".root"
-        if mode=="local":
-            filepath = os.path.join(workdir_path,nick,filename)
-        elif mode=="xrootd":
-            with open(gc_path, "r") as gc_file:
-                for line in gc_file.readlines():
-                    if "se path" in line:
-                        filepath = "/store/"+line.split("/store/")[1].strip("\n")+"/"+filename
-                        break
-        if status != "complete":
-            if not check_output_files(filepath, mode):
-                job_to_resubmit.append(jobnumber)
-            else:
-                jobdb[str(jobnumber)]["status"] = "complete"
+    for jobnumber in sorted([int(k) for k in jobdb.keys()]):
+        for subjobnumber in range(len(jobdb[str(jobnumber)])):
+            nick = jobdb[str(jobnumber)][subjobnumber]["input"].split("/")[-1].replace(".root","")
+            pipeline = jobdb[str(jobnumber)][subjobnumber]["folder"]
+            tree = jobdb[str(jobnumber)][subjobnumber]["tree"]
+            first = jobdb[str(jobnumber)][subjobnumber]["first_entry"]
+            last = jobdb[str(jobnumber)][subjobnumber]["last_entry"]
+            status = jobdb[str(jobnumber)][subjobnumber]["status"]
+            filename = "_".join([nick,pipeline,str(first),str(last)])+".root"
+            if mode=="local":
+                filepath = os.path.join(workdir_path,nick,filename)
+            elif mode=="xrootd":
+                with open(gc_path, "r") as gc_file:
+                    for line in gc_file.readlines():
+                        if "se path" in line:
+                            filepath = "/store/"+line.split("/store/")[1].strip("\n")+"/"+filename
+                            break
+            if status != "complete":
+                if not check_output_files(filepath, mode):
+                    job_to_resubmit.append(jobnumber)
+                else:
+                    jobdb[str(jobnumber)][subjobnumber]["status"] = "complete"
     with open(arguments_path, "w") as arguments_file:
         arguments_file.write("\n".join([str(arg) for arg in job_to_resubmit]))
         arguments_file.close()
@@ -349,7 +395,7 @@ def check_and_resubmit(executable,custom_workdir_path, mode):
     print "To run the resubmission, check {} first".format(condor_jdl_resubmit_path)
     print "Command:"
     print "cd {TASKDIR}; condor_submit {CONDORJDL}".format(TASKDIR=workdir_path, CONDORJDL=condor_jdl_resubmit_path)
-    print 
+    print
     with open(jobdb_path,"w") as db:
         db.write(json.dumps(jobdb, sort_keys=True, indent=2))
         db.close()
@@ -438,6 +484,7 @@ def main():
                 args.restrict_to_samples_wildcards.append("*")
             for wildcard in args.restrict_to_samples_wildcards:
                 input_ntuples_list += fnmatch.filter(all_files,wildcard)
+        print input_ntuples_list
 
         extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
         prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd)

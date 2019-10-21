@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   }
   ULong64_t event;
   inputtree->SetBranchAddress("event", &event);
-
+  std::cout << "Inputs intialized" << std::endl;
   // Initialize output file
   auto outputname =
       outputname_from_settings(input, folder, first_entry, last_entry);
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   std::string max_index_name = channel+"_max_index";
   nnfriend->Branch(max_score_name.c_str(), &max_score, (max_score_name+"/F").c_str());
   nnfriend->Branch(max_index_name.c_str(), &max_index, (max_index_name+"/F").c_str());
-
+  std::cout << "Setup done" << std::endl;
   // Loop over desired events of the input tree & compute outputs
   for (unsigned int i = first_entry; i <= last_entry; i++) {
     // Get entry
@@ -154,7 +154,6 @@ int main(int argc, char **argv) {
     {
       model_inputs[in.first] = in.second;
     }
-   
     // Apply model on inputs
     auto model_outputs = models[event % 2]->compute(model_inputs);
 
@@ -177,7 +176,7 @@ int main(int argc, char **argv) {
     max_score = default_float;
     max_index = 0.0;
   }
-
+  std::cout << "Outputs Computed" << std::endl;
   // Fill output file
   out->cd(folder.c_str());
   nnfriend->Write("", TObject::kOverwrite);

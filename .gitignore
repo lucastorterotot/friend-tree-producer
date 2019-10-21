@@ -4,3 +4,4 @@
 *.root
 
 data/input_params
+data/inputs_lwtnn
