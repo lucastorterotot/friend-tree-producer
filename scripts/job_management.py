@@ -75,7 +75,9 @@ def write_trees_to_files(info):
 
 def check_output_files(f, mode):
     valid_file = True
-    print "Checking: ",f
+    print os.environ["USER"]
+    if os.environ["USER"] == "mscham":
+        print "Checking: ",f
     if mode=="local":
         if not os.path.exists(f):
             valid_file = False
