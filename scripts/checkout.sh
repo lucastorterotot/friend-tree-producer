@@ -25,11 +25,11 @@ eval `scramv1 runtime -sh`
 ### Checkout of external software
 
 # SVfit and fastMTT
-git clone https://github.com/SVfit/ClassicSVfit TauAnalysis/ClassicSVfit -b fastMTT_19_02_2019
-git clone https://github.com/SVfit/SVfitTF TauAnalysis/SVfitTF
+git clone git@github.com:SVfit/ClassicSVfit TauAnalysis/ClassicSVfit -b fastMTT_19_02_2019
+git clone git@github.com:SVfit/SVfitTF TauAnalysis/SVfitTF
 
 # MELA
-git clone https://github.com/cms-analysis/HiggsAnalysis-ZZMatrixElement ZZMatrixElement -b v2.2.1
+git clone git@github.com:cms-analysis/HiggsAnalysis-ZZMatrixElement ZZMatrixElement -b v2.2.1
 # NOTE: The following two lines should be needed following the wiki, but it
 # seems to work either way. However, these lines introduce a dependency on AFS.
 # Wiki: https://twiki.cern.ch/twiki/bin/view/CMS/MELAProject#Checkout_instructions
@@ -49,17 +49,17 @@ git clone -b 2016 ssh://git@gitlab.cern.ch:7999/cms-htt/Jet2TauFakesFiles.git da
 git clone -b 2017 ssh://git@gitlab.cern.ch:7999/cms-htt/Jet2TauFakesFiles.git data_2017
 git clone -b 2018 ssh://git@gitlab.cern.ch:7999/cms-htt/Jet2TauFakesFiles.git data_2018
 cd ../..
-git clone https://github.com/KIT-CMS/fake-factor-application.git HiggsAnalysis/fake-factor-application
+git clone git@github.com:KIT-CMS/fake-factor-application.git HiggsAnalysis/fake-factor-application
 
 # TODO NN MET
 
-# TODO NN max score 
+# TODO NN max score
 
 # TODO single-tau HLT
 
 ### Checkout of friend tree producer setup
-git clone https://github.com/KIT-CMS/friend-tree-producer.git HiggsAnalysis/friend-tree-producer
-git clone https://github.com/KIT-CMS/grid-control
+git clone git@github.com:KIT-CMS/friend-tree-producer.git HiggsAnalysis/friend-tree-producer
+git clone git@github.com:KIT-CMS/grid-control
 # Data sources
 mkdir HiggsAnalysis/friend-tree-producer/data/input_params
 cd HiggsAnalysis/friend-tree-producer/data/input_params
