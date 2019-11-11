@@ -113,7 +113,6 @@ def get_entries(*args):
 
     restrict_to_channels_file = copy.deepcopy(restrict_to_channels)
     nick = f.split("/")[-1].replace(".root","")
-    if nick == 'WplusHToTauTauM125_RunIIAutumn18MiniAOD_102X_13TeV_MINIAOD_powheg-pythia8_v2': return
 
     warnings = []
     if "SingleMuon_Run" in nick or "MuTauFinalState" in nick:
