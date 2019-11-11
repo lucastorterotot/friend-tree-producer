@@ -12,7 +12,7 @@ import copy
 import time
 from XRootD import client
 from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 from threading import Lock
 s_print_lock = Lock()
 import fnmatch
@@ -103,72 +103,74 @@ def check_output_files(f, mode):
     return valid_file
 
 
-ntuple_database = {}
-
-
 def get_entries(*args):
     f = args[0]['f']
     restrict_to_channels = args[0]['restrict_to_channels']
     restrict_to_shifts = args[0]['restrict_to_shifts']
+    ntuple_database = args[0]['ntuple_database']
 
     restrict_to_channels_file = copy.deepcopy(restrict_to_channels)
     nick = f.split("/")[-1].replace(".root","")
 
     warnings = []
     if "SingleMuon_Run" in nick or "MuTauFinalState" in nick:
-        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
         restrict_to_channels_file = list(set(['mt', 'mm']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['mt', 'mm']
+        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
 
     elif "SingleElectron_Run" in nick or "EGamma_Run" in nick or "ElTauFinalState" in nick:
-        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
-
         restrict_to_channels_file = list(set(['et']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['et']
+        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
 
     elif "Tau_Run" in nick or "TauTauFinalState" in nick:
-        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
         restrict_to_channels_file = list(set(['tt']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['tt']
+        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
 
     elif "MuonEG_Run" in nick or "ElMuFinalState" in nick:
-        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
         restrict_to_channels_file = list(set(['em']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['em']
+        warnings.append("\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file))
 
-    ntuple_database[nick] = {}
-    ntuple_database[nick]["path"] = f
     F = r.TFile.Open(f, "read")
     pipelines = [k.GetName() for k in F.GetListOfKeys()]
     if len(restrict_to_channels_file) > 0 or (len(restrict_to_channels_file) == 0 and len(restrict_to_channels) > 0):
         pipelines = [p for p in pipelines if p.split("_")[0] in restrict_to_channels_file]
     if len(restrict_to_shifts) > 0:
         pipelines = [p for p in pipelines if p.split("_")[1] in restrict_to_shifts]
-    ntuple_database[nick]["pipelines"] = {}
+    pipelieness = {}
     for p in pipelines:
         try:
-            ntuple_database[nick]["pipelines"][p] = F.Get(p).Get("ntuple").GetEntries()
+            pipelieness[p] = F.Get(p).Get("ntuple").GetEntries()
         except:
             import sys
             with s_print_lock:
                 print "Unexpected error:", sys.exc_info()[0]
-                logger.critical('problem in: %s' % f)
+                logger.critical('problem in file: %s pipeline: %s' % (f, p))
             raise
     with s_print_lock:
         logger.info('done: %s' % nick)
         logger.debug('\t pipelines: \n\t\t%s' % '\n\t\t'.join(pipelines))
         for w in warnings:
             logger.warning(w)
+    ntuple_database[nick] = {
+        'path': f,
+        'pipelines': pipelieness,
+    }
     return
 
 
 def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry):
-    # ntuple_database = {}
     cmsswbase = os.environ['CMSSW_BASE']
 
-    from multiprocessing.dummy import Pool
     pool = Pool(cores)
-    pool.map(get_entries,
+    manager = Manager()
+    ntuple_database = manager.dict()
+
+    x = pool.map(get_entries,
         map(lambda e: {
             'f': e,
-            'restrict_to_channels':
-            restrict_to_channels, 'restrict_to_shifts': restrict_to_shifts},
+            'restrict_to_channels': restrict_to_channels,
+            'restrict_to_shifts': restrict_to_shifts,
+            'ntuple_database': ntuple_database,
+        },
         input_ntuples_list),
     )
 
@@ -179,8 +181,13 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     ####variable for checking if the are still some event of this pipeline that need distributing
     curNofEventsInJob=0
     ## iterate over the files
-    for nick in ntuple_database:
-        for p in ntuple_database[nick]["pipelines"]:
+
+    sorted_nicks = ntuple_database.keys()
+    sorted_nicks.sort()
+    for nick in sorted_nicks:
+        sorted_pipelines = ntuple_database[nick]['pipelines'].keys()
+        sorted_pipelines.sort()
+        for p in sorted_pipelines:
             n_entries = ntuple_database[nick]["pipelines"][p]
             if n_entries > 0:
                 ####variable for checking if there are still some event of this pipeline that need distributing
@@ -340,7 +347,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         db.write(json.dumps(job_database, sort_keys=True, indent=2))
         db.close()
     with open(datasetdb_path,"w") as datasets:
-        datasets.write(json.dumps(ntuple_database, sort_keys=True, indent=2))
+        datasets.write(json.dumps(ntuple_database.copy(), sort_keys=True, indent=2))
         datasets.close()
 
 def collect_outputs(executable,cores,custom_workdir_path ,mode):
