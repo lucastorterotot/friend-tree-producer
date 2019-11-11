@@ -157,7 +157,7 @@ def get_entries(*args):
     return
 
 
-def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry):
+def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None):
     cmsswbase = os.environ['CMSSW_BASE']
 
     pool = Pool(cores)
@@ -287,7 +287,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         gc_storage_dir = workdir_path
         extra_se_info = ""
     elif mode == 'xrootd':
-        gc_storage_dir = server_srm[output_server_srm]+"store/user/{}/gc_storage/{}".format(os.environ["USER"], gc_date_tag)
+        gc_storage_dir = server_srm[output_server_srm]+"store/user/{}/gc_storage/{}".format(os.environ["USER"], gc_date_tag) if se_path is  None else se_path
         extra_se_info = "se output files = *.root\nse output pattern = @XBASE@.@XEXT@"
     gc_template_path = os.path.join(os.environ["CMSSW_BASE"],"src/HiggsAnalysis/friend-tree-producer/data/grid-control_%s.conf"%batch_cluster)
     gc_template_file = open(gc_template_path, "r")
@@ -494,6 +494,7 @@ def main():
     parser.add_argument('--input_server',default='GridKA',choices=['GridKA','DESY', 'EOS', 'RWTH'], type=str, help='Definition of server for inputs')
     parser.add_argument('--output_server_xrootd',default='GridKA',choices=['GridKA','DESY', 'RWTH'], type=str, help='Definition of xrootd server for ouputs')
     parser.add_argument('--output_server_srm',default='GridKA',choices=['GridKA','DESY', 'RWTH'], type=str, help='Definition of srm server for outputs')
+    parser.add_argument('--se-path', dest="se_path", default=None, type=str, help='se path for outputs')
     parser.add_argument('--extended_file_access',default=None, type=str, help='Additional prefix for the file access, e.g. via xrootd.')
     parser.add_argument('--custom_workdir_path',default=None, type=str, help='Absolute path to a workdir directory different from $CMSSW_BASE/src.')
     parser.add_argument('--restrict_to_channels', nargs='+', default=[], help='Produce friends only for certain channels')
@@ -541,7 +542,7 @@ def main():
         logger.debug(input_ntuples_list)
 
         extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
-        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry)
+        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path)
     elif args.command == "collect":
         collect_outputs(args.executable, args.cores, args.custom_workdir_path, args.mode)
     elif args.command == "check":
