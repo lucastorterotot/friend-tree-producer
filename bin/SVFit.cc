@@ -185,6 +185,9 @@ int main(int argc, char** argv)
   // Loop over desired events of the input tree & compute outputs
   for(int i=first_entry; i < last_entry + include_last_ev; i++)
   {
+
+        if ((i - first_entry) % 1000 == 0)
+          std::cout << " processing event " << i  << ", last event: " << last_entry + include_last_ev << " [" << float(i - first_entry) / (last_entry + include_last_ev - first_entry) << " %]" << std::endl;
         inputtree->GetEntry(i);
 
         // define MET;
@@ -282,9 +285,11 @@ int main(int argc, char** argv)
   }
 
   // Fill output file
+  std::cout << "Writing output file ..." << std::endl;
   svfitfriend->Write("",TObject::kOverwrite);
   out->Close();
   in->Close();
+  std::cout << "done" << std::endl;
 
   return 0;
 }
