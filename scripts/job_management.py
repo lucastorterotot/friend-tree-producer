@@ -40,14 +40,14 @@ cd {TASKDIR}
 server_xrootd = {
     "GridKA" : "root://cmsxrootd-kit.gridka.de:1094/",
     "DESY" : "root://cmsxrootd-kit.gridka.de:1094/",
-    "RWTH" : "root://cmsxrootd-kit.gridka.de:1094/",
+    "RWTH" : "root://grid-se004.physik.rwth-aachen.de:1094/",
     "EOS" : "root://eosuser.cern.ch:1094/",
 }
 
 server_srm = {
     "GridKA" : "srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/",
     "DESY" : "srm://dcache-se-cms.desy.de:8443/srm/managerv2?SFN=/pnfs/desy.de/cms/tier2/",
-    "RWTH" : "srm://grid-srm.physik.rwth-aachen.de:8443/srm/managerv2\?SFN=/pnfs/physik.rwth-aachen.de/cms/",
+    "RWTH" : "srm://grid-srm.physik.rwth-aachen.de:8443/srm/managerv2?SFN=/pnfs/physik.rwth-aachen.de/cms/",
 }
 
 command_template = '''
@@ -108,6 +108,7 @@ def get_entries(*args):
     restrict_to_channels = args[0]['restrict_to_channels']
     restrict_to_shifts = args[0]['restrict_to_shifts']
     ntuple_database = args[0]['ntuple_database']
+    Global = args[0]['Global']
 
     restrict_to_channels_file = copy.deepcopy(restrict_to_channels)
     nick = f.split("/")[-1].replace(".root","")
@@ -146,7 +147,8 @@ def get_entries(*args):
                 logger.critical('problem in file: %s pipeline: %s' % (f, p))
             raise
     with s_print_lock:
-        logger.info('done: %s' % nick)
+        Global.counter += 1
+        logger.info('done: %s [%d/%d]' % (nick, Global.counter, Global.ninput_ntuples_list))
         logger.debug('\t pipelines: \n\t\t%s' % '\n\t\t'.join(pipelines))
         for w in warnings:
             logger.warning(w)
@@ -156,13 +158,16 @@ def get_entries(*args):
     }
     return
 
-
-def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None):
+gc_date_tag = None
+def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None, shadow_input_ntuples_directory=None, input_server=None):
     cmsswbase = os.environ['CMSSW_BASE']
 
     pool = Pool(cores)
     manager = Manager()
     ntuple_database = manager.dict()
+    Global = manager.Namespace()
+    Global.counter = 0
+    Global.ninput_ntuples_list = len(input_ntuples_list)
 
     x = pool.map(get_entries,
         map(lambda e: {
@@ -170,6 +175,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
             'restrict_to_channels': restrict_to_channels,
             'restrict_to_shifts': restrict_to_shifts,
             'ntuple_database': ntuple_database,
+            'Global': Global,
         },
         input_ntuples_list),
     )
@@ -234,6 +240,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         logger.debug("Job {}:".format(j))
         for sj in job_database[j]:
             logger.debug(str(sj))
+    job_database_copy = copy.deepcopy(job_database)
     #### add 1 to the job number, to fix the last job not being exexuted:
     job_number+=1
 
@@ -241,14 +248,15 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         return
     if custom_workdir_path:
         if not os.path.exists(custom_workdir_path):
-            os.mkdir(custom_workdir_path)
+            os.makedirs(custom_workdir_path)
         workdir_path = os.path.join(custom_workdir_path,executable+"_workdir")
     else:
         workdir_path = os.path.join(os.environ["CMSSW_BASE"],"src",executable+"_workdir")
     if not os.path.exists(workdir_path):
-        os.mkdir(workdir_path)
+        os.makedirs(workdir_path)
     if not os.path.exists(os.path.join(workdir_path,"logging")):
-        os.mkdir(os.path.join(workdir_path,"logging"))
+        os.makedirs(os.path.join(workdir_path,"logging"))
+
     commandlist = []
     for jobnumber in job_database.keys():
         for subjobnumber in range(len(job_database[jobnumber])):
@@ -273,8 +281,10 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
         shellscript.close()
     if mode == 'xrootd':
+        global gc_date_tag
         gc_date_tag = "{}_{}".format(executable, time.strftime("%Y-%m-%d_%H-%M-%S"))
-        os.mkdir(os.path.join(os.environ["CMSSW_BASE"],"src",gc_date_tag))
+
+        os.makedirs(os.path.join(os.environ["CMSSW_BASE"],"src",gc_date_tag))
         with open(os.path.join(os.environ["CMSSW_BASE"],"src",gc_date_tag,"condor_{}_forGC.sh".format(executable)),"w") as shellscript:
             shellscript.write(shellscript_content.replace("$1","$GC_JOB_ID").replace("cd {TASKDIR}\n".format(TASKDIR=workdir_path),""))
             os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
@@ -317,13 +327,13 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
         condorjdl_path = os.path.join(workdir_path,"condor_"+executable+"_%d.jdl"%index)
         argument_list = np.arange(first,last+1)
         if not os.path.exists(os.path.join(workdir_path,"logging", str(index))):
-            os.mkdir(os.path.join(workdir_path,"logging", str(index)))
+            os.makedirs(os.path.join(workdir_path,"logging", str(index)))
         arguments_path = os.path.join(workdir_path,"arguments_%d.txt"%(index))
         with open(arguments_path, "w") as arguments_file:
             arguments_file.write("\n".join([str(arg) for arg in argument_list]))
             arguments_file.close()
         njobs = "arguments from arguments_%d.txt"%(index)
-        if batch_cluster in  ["etp6","etp7","lxplus6","lxplus7"]:
+        if batch_cluster in  ["etp6","etp7","lxplus6","lxplus7", 'rwth']:
             if walltime > 0:
                 condorjdl_content = condorjdl_template.format(TASKDIR=workdir_path,TASKNUMBER=str(index),EXECUTABLE=executable_path,NJOBS=njobs,WALLTIME=str(walltime))
             else:
@@ -344,7 +354,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     print "go.py {} -Gc".format(gc_path)
     print
     with open(jobdb_path,"w") as db:
-        db.write(json.dumps(job_database, sort_keys=True, indent=2))
+        db.write(json.dumps(job_database_copy, sort_keys=True, indent=2))
         db.close()
     with open(datasetdb_path,"w") as datasets:
         datasets.write(json.dumps(ntuple_database.copy(), sort_keys=True, indent=2))
@@ -364,7 +374,7 @@ def collect_outputs(executable,cores,custom_workdir_path ,mode):
     datasetdb = json.loads(datasetdb_file.read())
     collection_path = os.path.join(workdir_path,executable+"_collected")
     if not os.path.exists(collection_path):
-        os.mkdir(collection_path)
+        os.makedirs(collection_path)
     print jobdb
     for jobnumber in sorted([int(k) for k in jobdb.keys()]):
         for subjobnumber in range(len(jobdb[str(jobnumber)])):
@@ -430,7 +440,7 @@ def check_and_resubmit(executable,custom_workdir_path, mode):
         arguments_file.write("\n".join([str(arg) for arg in job_to_resubmit]))
         arguments_file.close()
     if not os.path.exists(os.path.join(workdir_path,"logging", "remaining")):
-        os.mkdir(os.path.join(workdir_path,"logging", "remaining"))
+        os.makedirs(os.path.join(workdir_path,"logging", "remaining"))
     condor_jdl_path = os.path.join(workdir_path,"condor_"+executable+"_0.jdl")
     with open(condor_jdl_path, "r") as file:
         condor_jdl_resubmit = file.read()
@@ -478,12 +488,23 @@ def extract_friend_paths(packed_paths):
                 extracted_paths[channel].append(path_per_ch[channel])
     return extracted_paths
 
+def doReplace(file_name, old, new):
+
+    with open(file_name, "r") as f:
+        data = f.read()
+
+    data = data.replace(old, new)
+
+    with open(file_name, "w") as f:
+        f.write(data)
+
 def main():
     parser = argparse.ArgumentParser(description='Script to manage condor batch system jobs for the executables and their outputs.')
     parser.add_argument('--executable',required=True, choices=['SVFit', 'MELA', 'NNScore', 'NNMass', 'NNrecoil', 'FakeFactors', 'ZPtMReweighting'], help='Executable to be used for friend tree creation ob the batch system.')
-    parser.add_argument('--batch_cluster',required=True, choices=['naf','etp6','etp7','lxplus6','lxplus7'], help='Batch system cluster to be used.')
+    parser.add_argument('--batch_cluster',required=True, choices=['naf','etp6','etp7','lxplus6','lxplus7', 'rwth'], help='Batch system cluster to be used.')
     parser.add_argument('--command',required=True, choices=['submit','collect','check'], help='Command to be done by the job manager.')
     parser.add_argument('--input_ntuples_directory',required=True, help='Directory where the input files can be found. The file structure in the directory should match */*.root wildcard.')
+    parser.add_argument('--shadow_input_ntuples_directory', type=str, help='Directory where the input files can be found. The file structure in the directory should match */*.root wildcard.')
     parser.add_argument('--events_per_job',required=True, type=int, help='Event to be processed by each job')
     parser.add_argument('--cmssw_tarball',required=False, help='Path to the tarball of this CMSSW working setup.')
     parser.add_argument('--friend_ntuples_directories', nargs='+', default=[], help='Directory where the friend files can be found. The file structure in the directory should match the one of the base ntuples. Channel dependent parts of the path can be inserted like /commonpath/{et:et_folder,mt:mt_folder,tt:tt_folder}/commonpath.')
@@ -493,7 +514,6 @@ def main():
     parser.add_argument('--mode',default='local',choices=['local','xrootd'], type=str, help='Definition of file access')
     parser.add_argument('--input_server',default='GridKA',choices=['GridKA','DESY', 'EOS', 'RWTH'], type=str, help='Definition of server for inputs')
     parser.add_argument('--output_server_xrootd',default='GridKA',choices=['GridKA','DESY', 'RWTH'], type=str, help='Definition of xrootd server for ouputs')
-    parser.add_argument('--output_server_srm',default='GridKA',choices=['GridKA','DESY', 'RWTH'], type=str, help='Definition of srm server for outputs')
     parser.add_argument('--se-path', dest="se_path", default=None, type=str, help='se path for outputs')
     parser.add_argument('--extended_file_access',default=None, type=str, help='Additional prefix for the file access, e.g. via xrootd.')
     parser.add_argument('--custom_workdir_path',default=None, type=str, help='Absolute path to a workdir directory different from $CMSSW_BASE/src.')
@@ -509,16 +529,23 @@ def main():
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
+
+    # shadow the remote with local when creating jobs
+    if args.shadow_input_ntuples_directory is not None:
+        a = args.input_ntuples_directory
+        args.input_ntuples_directory = args.shadow_input_ntuples_directory
+        args.shadow_input_ntuples_directory = a
+
     #TODO: Expand functionalities for remote access
     if args.mode == "xrootd":
         if args.executable != "SVFit":
             print "Remote access currently only works for SVFit computation."
             exit()
-        if args.input_server != "GridKA":
-            print "Remote access currently only works for input files on Gridka."
+        if args.input_server not in ["GridKA", "RWTH"]:
+            print "Remote access currently only works for input files on Gridka and RWTH."
             exit()
     if args.command == "submit":
-        if args.mode == 'local':
+        if args.mode == 'local' or args.shadow_input_ntuples_directory is not None:
             if len(args.restrict_to_samples_wildcards) == 0:
                 args.restrict_to_samples_wildcards.append("*")
             for wildcard in args.restrict_to_samples_wildcards:
@@ -542,7 +569,31 @@ def main():
         logger.debug(input_ntuples_list)
 
         extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
-        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path)
+
+        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path, args.shadow_input_ntuples_directory, args.input_server)
+        if args.shadow_input_ntuples_directory:
+            if args.dry:
+                return
+            if args.custom_workdir_path:
+                workdir_path = os.path.join(args.custom_workdir_path, args.executable + "_workdir")
+            else:
+                workdir_path = os.path.join(os.environ["CMSSW_BASE"], "src", args.executable + "_workdir")
+
+            datasetdb_path = os.path.join(workdir_path, "dataset.json")
+            executable_path = os.path.join(workdir_path, "condor_" + args.executable + ".sh")
+            gc_executable_path = os.path.join(workdir_path, "condor_" + args.executable + "_forGC.sh")
+            jobdb_path = os.path.join(workdir_path,"condor_" + args.executable + ".json")
+
+            doReplace(datasetdb_path, old=args.input_ntuples_directory, new=server_xrootd[args.input_server] +  args.shadow_input_ntuples_directory)
+            doReplace(executable_path, old=args.input_ntuples_directory, new=server_xrootd[args.input_server] +  args.shadow_input_ntuples_directory)
+            doReplace(gc_executable_path, old=args.input_ntuples_directory, new=server_xrootd[args.input_server] +  args.shadow_input_ntuples_directory)
+            doReplace(jobdb_path, old=args.input_ntuples_directory, new=server_xrootd[args.input_server] +  args.shadow_input_ntuples_directory)
+
+            if args.mode == 'xrootd':
+                print "condor_{}_forGC.sh".format(args.executable)
+                shellscript = os.path.join(os.environ["CMSSW_BASE"], "src", gc_date_tag, "condor_{}_forGC.sh".format(args.executable))
+                doReplace(shellscript, old=args.input_ntuples_directory, new=server_xrootd[args.input_server] +  args.shadow_input_ntuples_directory)
+
     elif args.command == "collect":
         collect_outputs(args.executable, args.cores, args.custom_workdir_path, args.mode)
     elif args.command == "check":
