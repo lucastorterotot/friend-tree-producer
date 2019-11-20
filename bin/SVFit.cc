@@ -148,24 +148,24 @@ int main(int argc, char** argv)
   TTree* svfitfriend = new TTree("ntuple","svfit friend tree");
 
   // ClassicSVFit outputs
-  Float_t pt_sv,eta_sv,phi_sv,m_sv;
+  //Float_t pt_sv,eta_sv,phi_sv,m_sv;
   Float_t pt_sv_puppi,eta_sv_puppi,phi_sv_puppi,m_sv_puppi;
-  svfitfriend->Branch("pt_sv",&pt_sv,"pt_sv/F");
-  svfitfriend->Branch("eta_sv",&eta_sv,"eta_sv/F");
-  svfitfriend->Branch("phi_sv",&phi_sv,"phi_sv/F");
-  svfitfriend->Branch("m_sv",&m_sv,"m_sv/F");
+  //svfitfriend->Branch("pt_sv",&pt_sv,"pt_sv/F");
+  //svfitfriend->Branch("eta_sv",&eta_sv,"eta_sv/F");
+  //svfitfriend->Branch("phi_sv",&phi_sv,"phi_sv/F");
+  //svfitfriend->Branch("m_sv",&m_sv,"m_sv/F");
   svfitfriend->Branch("pt_sv_puppi",&pt_sv_puppi,"pt_sv_puppi/F");
   svfitfriend->Branch("eta_sv_puppi",&eta_sv_puppi,"eta_sv_puppi/F");
   svfitfriend->Branch("phi_sv_puppi",&phi_sv_puppi,"phi_sv_puppi/F");
   svfitfriend->Branch("m_sv_puppi",&m_sv_puppi,"m_sv_puppi/F");
 
   // FastMTT outputs
-  Float_t pt_fastmtt,eta_fastmtt,phi_fastmtt,m_fastmtt;
+  //Float_t pt_fastmtt,eta_fastmtt,phi_fastmtt,m_fastmtt;
   Float_t pt_fastmtt_puppi,eta_fastmtt_puppi,phi_fastmtt_puppi,m_fastmtt_puppi;
-  svfitfriend->Branch("pt_fastmtt",&pt_fastmtt,"pt_fastmtt/F");
-  svfitfriend->Branch("eta_fastmtt",&eta_fastmtt,"eta_fastmtt/F");
-  svfitfriend->Branch("phi_fastmtt",&phi_fastmtt,"phi_fastmtt/F");
-  svfitfriend->Branch("m_fastmtt",&m_fastmtt,"m_fastmtt/F");
+  //svfitfriend->Branch("pt_fastmtt",&pt_fastmtt,"pt_fastmtt/F");
+  //svfitfriend->Branch("eta_fastmtt",&eta_fastmtt,"eta_fastmtt/F");
+  //svfitfriend->Branch("phi_fastmtt",&phi_fastmtt,"phi_fastmtt/F");
+  //svfitfriend->Branch("m_fastmtt",&m_fastmtt,"m_fastmtt/F");
   svfitfriend->Branch("pt_fastmtt_puppi",&pt_fastmtt_puppi,"pt_fastmtt_puppi/F");
   svfitfriend->Branch("eta_fastmtt_puppi",&eta_fastmtt_puppi,"eta_fastmtt_puppi/F");
   svfitfriend->Branch("phi_fastmtt_puppi",&phi_fastmtt_puppi,"phi_fastmtt_puppi/F");
@@ -232,7 +232,7 @@ int main(int argc, char** argv)
                            1 one-prong with neutral pions
               10 three-prong without neutral pions
         */
-
+/*
         // Run ClassicSVFit
         svFitAlgo.integrate(measuredTauLeptons, metVec.X(), metVec.Y(), covMET);
         bool isValidSolution = svFitAlgo.isValidSolution();
@@ -256,10 +256,10 @@ int main(int argc, char** argv)
         eta_fastmtt = ttP4.Eta();
         phi_fastmtt = ttP4.Phi();
         m_fastmtt = ttP4.M();
-
+*/
         // Run ClassicSVFit with puppi
         svFitAlgo.integrate(measuredTauLeptons, puppimetVec.X(), puppimetVec.Y(), puppicovMET);
-        isValidSolution = svFitAlgo.isValidSolution();
+        bool isValidSolution = svFitAlgo.isValidSolution();
 
         if ( isValidSolution ) {
             pt_sv_puppi = static_cast<DiTauSystemHistogramAdapter*>(svFitAlgo.getHistogramAdapter())->getPt();
