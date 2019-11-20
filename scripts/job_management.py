@@ -160,25 +160,59 @@ def get_entries(*args):
 
 gc_date_tag = None
 def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None, shadow_input_ntuples_directory=None, input_server=None):
+    logger.debug('starting prepare_jobs')
     cmsswbase = os.environ['CMSSW_BASE']
+    ntuple_database = {}
 
-    pool = Pool(cores)
-    manager = Manager()
-    ntuple_database = manager.dict()
-    Global = manager.Namespace()
-    Global.counter = 0
-    Global.ninput_ntuples_list = len(input_ntuples_list)
+    if cores > 1:
+        pool = Pool(cores)
+        manager = Manager()
+        ntuple_database = manager.dict()
+        Global = manager.Namespace()
+        Global.counter = 0
+        Global.ninput_ntuples_list = len(input_ntuples_list)
 
-    x = pool.map(get_entries,
-        map(lambda e: {
-            'f': e,
-            'restrict_to_channels': restrict_to_channels,
-            'restrict_to_shifts': restrict_to_shifts,
-            'ntuple_database': ntuple_database,
-            'Global': Global,
-        },
-        input_ntuples_list),
-    )
+        logger.debug('starting pool.map')
+        x = pool.map(get_entries,
+            map(lambda e: {
+                'f': e,
+                'restrict_to_channels': restrict_to_channels,
+                'restrict_to_shifts': restrict_to_shifts,
+                'ntuple_database': ntuple_database,
+                'Global': Global,
+            },
+            input_ntuples_list),
+        )
+    else:
+        for f in input_ntuples_list:
+            restrict_to_channels_file = copy.deepcopy(restrict_to_channels)
+            nick = f.split("/")[-1].replace(".root", "")
+            print "Saving inputs for %s"%nick
+            if "SingleMuon_Run" in nick or "MuTauFinalState" in nick:
+                restrict_to_channels_file = list(set(['mt', 'mm']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['mt','mm']
+                print "\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file)
+            if "SingleElectron_Run" in nick or "EGamma_Run" in nick or "ElTauFinalState" in nick:
+                restrict_to_channels_file = list(set(['et']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['et']
+                print "\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file)
+            if "Tau_Run" in nick or "TauTauFinalState" in nick:
+                restrict_to_channels_file = list(set(['tt']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['tt']
+                print "\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file)
+            if "MuonEG_Run" in nick or "ElMuFinalState" in nick:
+                restrict_to_channels_file = list(set(['em']).intersection(restrict_to_channels_file)) if len(restrict_to_channels_file) > 0 else ['em']
+                print "\tWarning: restrict %s to '%s' channel(s)" % (nick, restrict_to_channels_file)
+            ntuple_database[nick] = {}
+            ntuple_database[nick]["path"] = f
+            F = r.TFile.Open(f, "read")
+            pipelines = [k.GetName() for k in F.GetListOfKeys()]
+            if len(restrict_to_channels_file) > 0 or (len(restrict_to_channels_file) == 0 and len(restrict_to_channels) > 0):
+                pipelines = [p for p in pipelines if p.split("_")[0] in restrict_to_channels_file]
+            if len(restrict_to_shifts) > 0:
+                pipelines = [p for p in pipelines if p.split("_")[1] in restrict_to_shifts]
+            ntuple_database[nick]["pipelines"] = {}
+            for p in pipelines:
+                print "Pipeline: {}".format(p)
+                ntuple_database[nick]["pipelines"][p] = F.Get(p).Get("ntuple").GetEntries()
+
 
     job_database = {0: []}
     job_number = 0
@@ -187,7 +221,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     ####variable for checking if the are still some event of this pipeline that need distributing
     curNofEventsInJob=0
     ## iterate over the files
-
+    logger.debug('starting wd creation')
     sorted_nicks = ntuple_database.keys()
     sorted_nicks.sort()
     for nick in sorted_nicks:
@@ -509,7 +543,7 @@ def main():
     parser.add_argument('--cmssw_tarball',required=False, help='Path to the tarball of this CMSSW working setup.')
     parser.add_argument('--friend_ntuples_directories', nargs='+', default=[], help='Directory where the friend files can be found. The file structure in the directory should match the one of the base ntuples. Channel dependent parts of the path can be inserted like /commonpath/{et:et_folder,mt:mt_folder,tt:tt_folder}/commonpath.')
     parser.add_argument('--walltime',default=-1, type=int, help='Walltime to be set for the job (in seconds). If negative, then it will not be set. [Default: %(default)s]')
-    parser.add_argument('--cores',default=5, type=int, help='Number of cores to be used for the collect command. [Default: %(default)s]')
+    parser.add_argument('--cores',default=1, type=int, help='Number of cores to be used for the collect command. [Default: %(default)s]')
     parser.add_argument('--max_jobs_per_batch',default=10000, type=int, help='Maximal number of job per batch. [Default: %(default)s]')
     parser.add_argument('--mode',default='local',choices=['local','xrootd'], type=str, help='Definition of file access')
     parser.add_argument('--input_server',default='GridKA',choices=['GridKA','DESY', 'EOS', 'RWTH'], type=str, help='Definition of server for inputs')
@@ -571,6 +605,7 @@ def main():
         extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
 
         prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path, args.shadow_input_ntuples_directory, args.input_server)
+
         if args.shadow_input_ntuples_directory:
             if args.dry:
                 return
