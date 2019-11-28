@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
   std::vector<std::string> input_friends  = {};
   std::string folder = "mt_nominal";
   std::string tree = "ntuple";
+  bool conditional = false;
   std::string lwtnn_config = std::string(std::getenv("CMSSW_BASE"))+"/src/HiggsAnalysis/friend-tree-producer/data/inputs_lwtnn/";
   std::string datasets = std::string(std::getenv("CMSSW_BASE"))+"/src/HiggsAnalysis/friend-tree-producer/data/input_params/datasets.json";
   unsigned int first_entry = 0;
@@ -48,7 +49,8 @@ int main(int argc, char **argv) {
      ("first_entry",   po::value<unsigned int>(&first_entry)->default_value(first_entry))
      ("last_entry",    po::value<unsigned int>(&last_entry)->default_value(last_entry))
      ("lwtnn_config",  po::value<std::string>(&lwtnn_config)->default_value(lwtnn_config))
-     ("datasets",  po::value<std::string>(&datasets)->default_value(datasets));
+     ("datasets",  po::value<std::string>(&datasets)->default_value(datasets))
+     ("conditional", po::value<bool>(&conditional)->default_value(conditional));
   po::store(po::command_line_parser(argc, argv).options(config).run(), vm);
   po::notify(vm);
   // Add additional info inferred from options above
@@ -60,11 +62,13 @@ int main(int argc, char **argv) {
   std::string nick = input_split.end()[-2];
 
   // Load datasets.json to determine year of the sample per nick
+  std::cout << "Load datasets.json" << std::endl;
   boost::property_tree::ptree datasets_json;
   boost::property_tree::json_parser::read_json(datasets,datasets_json);
   int year = datasets_json.get_child(nick).get<int>("year");
 
   // Access input file and tree
+  std::cout << "Access input file and tree" << std::endl;
   auto in = TFile::Open(input.c_str(), "read");
   auto dir = (TDirectoryFile *)in->Get(folder.c_str());
   auto inputtree = (TTree *)dir->Get(tree.c_str());
@@ -74,6 +78,7 @@ int main(int argc, char **argv) {
   }
 
   // Set up lwtnn
+  std::cout << "Set up lwtnn" << std::endl;
   if (!boost::filesystem::exists(lwtnn_config)) {
       throw std::runtime_error("LWTNN config file does not exist.");
   }
@@ -90,9 +95,15 @@ int main(int argc, char **argv) {
   std::cout << "Loading fold1 model for application on EVEN events (event % 2 == 0)" << std::endl;
 
   // Initialize inputs
+  std::cout << "Initialize input" << std::endl;
   std::map<std::string, Float_t> float_inputs;
   std::map<std::string, Int_t> int_inputs;
-  for(size_t n=0; n < nnconfig0.inputs.size(); n++)
+  size_t input_size = nnconfig0.inputs.size();
+  if(conditional){
+     input_size = input_size - 3;
+  }
+
+  for(size_t n=0; n < input_size; n++)
   {
     std::string input_type = inputtree->GetLeaf((nnconfig0.inputs.at(n).name).c_str())->GetTypeName();
     if(input_type == "Float_t")
@@ -154,6 +165,25 @@ int main(int argc, char **argv) {
     {
       model_inputs[in.first] = in.second;
     }
+
+    if(conditional){
+        if(year == 2016){
+          model_inputs["2016"] = 1;
+          model_inputs["2017"] = 0;
+          model_inputs["2018"] = 0;
+        }
+        else if(year == 2017){
+          model_inputs["2016"] = 0;
+          model_inputs["2017"] = 1;
+          model_inputs["2018"] = 0;
+        }
+        else if(year == 2018){
+          model_inputs["2016"] = 0;
+          model_inputs["2017"] = 0;
+          model_inputs["2018"] = 1;
+        }
+    }
+
     // Apply model on inputs
     auto model_outputs = models[event % 2]->compute(model_inputs);
 

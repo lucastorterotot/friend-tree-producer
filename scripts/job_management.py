@@ -159,7 +159,7 @@ def get_entries(*args):
     return
 
 gc_date_tag = None
-def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None, shadow_input_ntuples_directory=None, input_server=None):
+def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None, shadow_input_ntuples_directory=None, input_server=None, conditional=False):
     logger.debug('starting prepare_jobs')
     cmsswbase = os.environ['CMSSW_BASE']
     ntuple_database = {}
@@ -263,6 +263,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
                     job_database[job_number][-1]["first_entry"] = first
                     job_database[job_number][-1]["last_entry"] = last
                     job_database[job_number][-1]["status"] = "submitted"
+                    job_database[job_number][-1]["conditional"] = int(conditional)
                     channel = p.split("_")[0]
                     if channel in inputs_friends_folders.keys() and len(inputs_friends_folders[channel])>0:
                         job_database[job_number][-1]["input_friends"] = " ".join([job_database[job_number][-1]["input"].replace(inputs_base_folder, friend_folder) for friend_folder in inputs_friends_folders[channel]])
@@ -554,6 +555,7 @@ def main():
     parser.add_argument('--restrict_to_channels', nargs='+', default=[], help='Produce friends only for certain channels')
     parser.add_argument('--restrict_to_shifts', nargs='+', default=[], help='Produce friends only for certain shifts')
     parser.add_argument('--restrict_to_samples_wildcards', nargs='+', default=[], help='Produce friends only for samples matching the path wildcard')
+    parser.add_argument('--conditional', type=bool, default=False, help='Use conditional network for all eras or single era networks.')
     parser.add_argument('--dry', action='store_true', default=False, help='dry run')
     parser.add_argument('--debug', action='store_true', default=False, help='debug')
 
@@ -604,7 +606,7 @@ def main():
 
         extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
 
-        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path, args.shadow_input_ntuples_directory, args.input_server)
+        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path, args.shadow_input_ntuples_directory, args.input_server, conditional=args.conditional)
 
         if args.shadow_input_ntuples_directory:
             if args.dry:
