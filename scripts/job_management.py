@@ -263,7 +263,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
                     job_database[job_number][-1]["first_entry"] = first
                     job_database[job_number][-1]["last_entry"] = last
                     job_database[job_number][-1]["status"] = "submitted"
-                    job_database[job_number][-1]["conditional"] = int(conditional)
+                    if "NNScore" in executable: job_database[job_number][-1]["conditional"] = int(conditional)
                     channel = p.split("_")[0]
                     if channel in inputs_friends_folders.keys() and len(inputs_friends_folders[channel])>0:
                         job_database[job_number][-1]["input_friends"] = " ".join([job_database[job_number][-1]["input"].replace(inputs_base_folder, friend_folder) for friend_folder in inputs_friends_folders[channel]])
