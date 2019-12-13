@@ -416,7 +416,7 @@ def collect_outputs(executable,cores,custom_workdir_path ,mode):
     collection_path = os.path.join(workdir_path,executable+"_collected")
     if not os.path.exists(collection_path):
         os.makedirs(collection_path)
-    print jobdb
+    # print jobdb
     for jobnumber in sorted([int(k) for k in jobdb.keys()]):
         for subjobnumber in range(len(jobdb[str(jobnumber)])):
             nick = jobdb[str(jobnumber)][subjobnumber]["input"].split("/")[-1].replace(".root","")
