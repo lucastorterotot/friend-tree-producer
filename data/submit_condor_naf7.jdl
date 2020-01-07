@@ -5,10 +5,5 @@ log                   = {TASKDIR}/logging/{TASKNUMBER}/$(ClusterId).log
 getenv                = true
 on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
 periodic_release =  (NumJobStarts < 3) && ((CurrentTime - EnteredCurrentStatus) > 600)
-requirements = (TARGET.ProvidesCPU == True) && (TARGET.ProvidesIO == True) && (TARGET.ProvidesEKPResources == True)
-+RemoteJob = True
-+RequestWalltime = {WALLTIME}
-accounting_group = cms.higgs
-universe = docker
-docker_image = mschnepf/slc7-condocker
 queue {NJOBS}
+requirements = (OpSysAndVer=="CentOS7")
