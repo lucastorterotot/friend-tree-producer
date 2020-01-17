@@ -57,6 +57,9 @@ git clone git@github.com:KIT-CMS/fake-factor-application.git HiggsAnalysis/fake-
 
 # TODO single-tau HLT
 
+# Tau Trigger
+git clone git@github.com:KIT-CMS/TauTriggerSFs.git TauAnalysisTools/TauTriggerSFs -b run2_SFs_TriggerFitsForEmbedded_DeepTau_SingleTau
+
 ### Checkout of friend tree producer setup
 git clone git@github.com:KIT-CMS/friend-tree-producer.git HiggsAnalysis/friend-tree-producer
 git clone git@github.com:KIT-CMS/grid-control
