@@ -49,15 +49,16 @@ int main(int argc, char **argv) {
   auto inputtree = (TTree *)dir->Get(tree.c_str());
 
   // Read era information from datasets.json
+  std::string basepath = std::getenv("CMSSW_BASE");
   std::string nickname = filename_from_inputpath(input);
   boost::property_tree::ptree pt;
-  boost::property_tree::read_json("HiggsAnalysis/friend-tree-producer/data/input_params/datasets.json", pt);
+  boost::property_tree::read_json(basepath+"/src/HiggsAnalysis/friend-tree-producer/data/input_params/datasets.json", pt);
   int year = pt.get<int>(nickname + ".year");
   std::map<int, std::string> inp_map = {
-	  {2016, "TauAnalysisTools/TauTriggerSFs/data/tauTriggerEfficiencies2016KIT_deeptau.root"},
-	  {2017, "TauAnalysisTools/TauTriggerSFs/data/tauTriggerEfficiencies2017KIT_deeptau.root"},
-	  {2018, "TauAnalysisTools/TauTriggerSFs/data/tauTriggerEfficiencies2018KIT_deeptau.root"},
-  }
+	  {2016, basepath+"/src/TauAnalysisTools/TauTriggerSFs/data/tauTriggerEfficiencies2016KIT_deeptau.root"},
+	  {2017, basepath+"/src/TauAnalysisTools/TauTriggerSFs/data/tauTriggerEfficiencies2017KIT_deeptau.root"},
+	  {2018, basepath+"/src/TauAnalysisTools/TauTriggerSFs/data/tauTriggerEfficiencies2018KIT_deeptau.root"},
+  };
   // std::string sf_input = "TauAnalysisTools/TauTriggerSFs/data/tauTriggerEfficiencies2017KIT_deeptau.root";
   std::string sf_input = inp_map[year];
   std::cout << "[INFO] Using input file '" << sf_input << "'" << std::endl;
@@ -182,7 +183,7 @@ int main(int argc, char **argv) {
   std::map<std::string, TauTriggerSFs2017*> TauSFs;
   for (auto wp: work_points)
   {
-	  TauSFs[wp] = new TauTriggerSFs2017(sf_input, sf_input, trg_name[channel], year, wp, "DeepTau");
+	  TauSFs[wp] = new TauTriggerSFs2017(sf_input, sf_input, trg_name[channel], std::to_string(year), wp, "DeepTau");
   }
 
   // Loop over desired events of the input tree & compute outputs
