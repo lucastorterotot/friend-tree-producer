@@ -128,9 +128,9 @@ int main(int argc, char **argv) {
   emb_weights_down.resize(work_points.size(), 1.);
   for (size_t i = 0; i < work_points.size(); i++)
   {
-	  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_2").c_str(), &(mc_weights[i]), ("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_2/F").c_str());
-	  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_2").c_str(), &(mc_weights_up[i]), ("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_2/F").c_str());
-	  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_2").c_str(), &(mc_weights_down[i]), ("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_2/F").c_str());
+	  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_2").c_str(), &(emb_weights[i]), ("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_2/F").c_str());
+	  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_2").c_str(), &(emb_weights_up[i]), ("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_2/F").c_str());
+	  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_2").c_str(), &(emb_weights_down[i]), ("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_2/F").c_str());
   }
   std::vector<float> data_weights1;
   std::vector<float> data_weights1_up;
@@ -168,9 +168,9 @@ int main(int argc, char **argv) {
 
 	  for (size_t i = 0; i < work_points.size(); i++)
 	  {
-		  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_1").c_str(), &(mc_weights1[i]), ("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_1/F").c_str());
-		  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_1").c_str(), &(mc_weights1_up[i]), ("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_1/F").c_str());
-		  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_1").c_str(), &(mc_weights1_down[i]), ("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_1/F").c_str());
+		  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_1").c_str(), &(emb_weights1[i]), ("crossTriggerCorrectedEMBEfficiencyWeight_" + work_points[i] + "_DeepTau_1/F").c_str());
+		  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_1").c_str(), &(emb_weights1_up[i]), ("crossTriggerCorrectedEMBEfficiencyWeightUp_" + work_points[i] + "_DeepTau_1/F").c_str());
+		  triggerfriend->Branch(("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_1").c_str(), &(emb_weights1_down[i]), ("crossTriggerCorrectedEMBEfficiencyWeightDown_" + work_points[i] + "_DeepTau_1/F").c_str());
 	  }
   }
 
