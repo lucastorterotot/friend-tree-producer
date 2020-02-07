@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-pkg = __import__("HiggsAnalysis.fake-factor-application.calculate_fake_factors")
-ff_tools=getattr(pkg, "fake-factor-application").calculate_fake_factors
-
 import os
+import sys
 import json
 
 import argparse
 import logging
 logger = logging.getLogger()
+
+try:
+    pkg = __import__("HiggsAnalysis.fake-factor-application.calculate_fake_factors")
+    ff_tools = getattr(pkg, "fake-factor-application").calculate_fake_factors
+except:
+    sys.path.append(os.path.join(os.environ['CMSSW_BASE'], "src/HiggsAnalysis/fake-factor-application/python"))
+    ff_tools = __import__("calculate_fake_factors")
 
 
 def setup_logging(output_file, level=logging.DEBUG):
@@ -79,67 +84,133 @@ def parse_arguments():
         help=
         "Set path for to local cmssw for submission with Grid-Control"
     )
+    parser.add_argument('--determine-fractions', action='store_true', default=False, help='determine fractions')
+    parser.add_argument('--use-mva-tauid', action='store_true', default=False, help='use mva tau id')
+    parser.add_argument("--fractionsfile", type=str, help="fractionsfile")
+    parser.add_argument("--configkey", type=str, default='m_vis', help="configkey")
+    parser.add_argument("--tag", type=str, default='mssmMVA', help="Tag of output files.")
+    parser.add_argument("--output-dir", type=str, default='.', help="Tag of output files.")
+
     return parser.parse_args()
+
 
 def main(args):
 
-    nickname = os.path.basename(args.input).replace(".root","")
+    nickname = os.path.basename(args.input).replace(".root", "")
+
     # Get path to cmssw and fakefactordatabase
     cmsswbase = args.cmsswbase
-    fakefactordatabase = {
-        "2016" : {
-            "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/et/fakeFactors.root",
-            "mt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/mt/fakeFactors.root",
-            "tt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/tt/fakeFactors.root"
-                },
-        "2017" : {
-            "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/et/fakeFactors.root",
-            "mt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/mt/fakeFactors.root",
-            "tt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/tt/fakeFactors.root"
-                },
-        "2018" : {
-            "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/et/fakeFactors.root",
-            "mt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/mt/fakeFactors.root",
-            "tt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/tt/fakeFactors.root"
-                }
+    if args.use_mva_tauid:
+        fakefactordatabase = {
+            "2016": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/tt/fakeFactors.root"
+            },
+            "2017": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/tt/fakeFactors.root"
+            },
+            "2018": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/tt/fakeFactors.root"
+            }
+        }
+    else:
+        fakefactordatabase = {
+            "2016": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_DeepTauIDv2p1/tight/vloose/et/fakeFactors_tight.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_DeepTauIDv2p1/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_DeepTauIDv2p1/tight/vloose/tt/fakeFactors_tight.root"
+            },
+            "2017": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017_DeepTauIDv2p1/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017_DeepTauIDv2p1/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017_DeepTauIDv2p1/tight/vloose/tt/fakeFactors.root"
+            },
+            "2018": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018_DeepTauIDv2p1/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018_DeepTauIDv2p1/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018_DeepTauIDv2p1/tight/vloose/tt/fakeFactors.root"
+            }
         }
 
     # Determine era
-    with open(cmsswbase+"/src/HiggsAnalysis/friend-tree-producer/data/input_params/datasets.json") as json_file:  
+    with open(cmsswbase + "/src/HiggsAnalysis/friend-tree-producer/data/input_params/datasets.json") as json_file:
         datasets = json.load(json_file)
     era = str(datasets[nickname]["year"])
 
     # Load fractions
-    fractions = ff_tools.load_fractions("", "", True, "%s/src/HiggsAnalysis/friend-tree-producer/data/input_params/htt_ff_fractions_%s.root"%(cmsswbase, era), "", era)
-    
-    # Create friend tree
-    if not os.path.exists(nickname):
-        os.mkdir(nickname)
-    ff_tools.apply_fake_factors(
-        datafile = args.input,
-        friendfilelists = { # proper input friend files according to the channel are provided by job manager. Other channels won't be used.
-            "et" : args.input_friends,
-            "mt" : args.input_friends,
-            "tt" : args.input_friends
-            },
-        outputfile = os.path.join(nickname, "%s_%s_%s_%s.root"%(nickname, args.folder, args.first_entry, args.last_entry)),
-        category_mode = "inclusive",
-        fakefactordirectories = fakefactordatabase[era],
-        fractions = fractions,
-        use_fractions_from_worspace = True,
-        configpath = cmsswbase+"/src/HiggsAnalysis/fake-factor-application/config.yaml",
-        expression = "m_vis",
-        era = era,
-        pipeline_selection = args.folder,
-        treename = args.tree,
-        eventrange = [args.first_entry, args.last_entry],
-        rootfilemode = "recreate"
+    if args.determine_fractions:
+        conf = {
+            'categories': {
+                'et': ['inclusive'],
+                'mt': ['inclusive'],
+                'tt': ['tt1_inclusive', 'tt2_inclusive'],
+            }
+        }
+        fractions = ff_tools.determine_fractions(
+            config=conf,
+            configkey=args.configkey,
+            fractionsfile=args.fractionsfile,
+            era=era,
+            emb=False,
+            tag=args.tag,
+            era_labels={
+                era: 'Run%s' % (era)
+            }
         )
+    else:
+        fractions = ff_tools.load_fractions(
+            configpath="",
+            configkey="",
+            use_fractions_from_worspace=True,
+            workspace="%s/src/HiggsAnalysis/friend-tree-producer/data/input_params/htt_ff_fractions_%s.root"%(cmsswbase, era),
+            fractionfiles="", era=era
+        )
+
+    # Create friend tree
+    output_path = os.path.join(args.output_dir, nickname)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    ff_tools.apply_fake_factors(
+        datafile=args.input,
+        # proper input friend files according to the channel are provided by job manager. Other channels won't be used.
+        friendfilelists={
+            "et": args.input_friends,
+            "mt": args.input_friends,
+            "tt": args.input_friends
+        },
+        outputfile=os.path.join(output_path, "%s_%s_%s_%s.root" % (nickname, args.folder, args.first_entry, args.last_entry)),
+        category_mode="inclusive",
+        fakefactordirectories=fakefactordatabase[era],
+        fractions=fractions,
+        use_fractions_from_worspace=False if args.determine_fractions else True,
+        configpath=cmsswbase + "/src/HiggsAnalysis/fake-factor-application/config.yaml",
+        expression=args.configkey,
+        era=era,
+        pipeline_selection=args.folder,
+        treename=args.tree,
+        eventrange=[args.first_entry, args.last_entry],
+        rootfilemode="recreate"
+    )
 
 
 if __name__ == "__main__":
     args = parse_arguments()
+
     if args.enable_logging:
-        setup_logging("FakeFactors_%s_%s_%s_%s.log"%(os.path.basename(args.input).replace(".root",""), args.folder, args.first_entry, args.last_entry),
-                      logging.WARNING)
+        setup_logging(
+            "FakeFactors_%s_%s_%s_%s.log" % (
+                os.path.basename(args.input).replace(".root", ""),
+                args.folder,
+                args.first_entry,
+                args.last_entry
+            ),
+            logging.WARNING
+        )
+
     main(args)
