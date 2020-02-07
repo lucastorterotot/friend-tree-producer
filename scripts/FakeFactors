@@ -195,7 +195,8 @@ def main(args):
         pipeline_selection=args.folder,
         treename=args.tree,
         eventrange=[args.first_entry, args.last_entry],
-        rootfilemode="recreate"
+        rootfilemode="recreate",
+        use_mva_tauid=args.use_mva_tauid
     )
 
 
