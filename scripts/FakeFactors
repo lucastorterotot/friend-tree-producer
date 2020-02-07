@@ -88,9 +88,9 @@ def main(args):
     cmsswbase = args.cmsswbase
     fakefactordatabase = {
         "2016" : {
-            "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/et/fakeFactors_tight.root",
+            "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/et/fakeFactors.root",
             "mt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/mt/fakeFactors.root",
-            "tt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/tt/fakeFactors_tight.root"
+            "tt" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/tt/fakeFactors.root"
                 },
         "2017" : {
             "et" : cmsswbase+"/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/et/fakeFactors.root",
