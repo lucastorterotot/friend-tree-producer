@@ -103,24 +103,6 @@ def main(args):
     if args.use_mva_tauid:
         fakefactordatabase = {
             "2016": {
-                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/et/fakeFactors.root",
-                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/mt/fakeFactors.root",
-                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/tt/fakeFactors.root"
-            },
-            "2017": {
-                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/et/fakeFactors.root",
-                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/mt/fakeFactors.root",
-                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/tt/fakeFactors.root"
-            },
-            "2018": {
-                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/et/fakeFactors.root",
-                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/mt/fakeFactors.root",
-                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/tt/fakeFactors.root"
-            }
-        }
-    else:
-        fakefactordatabase = {
-            "2016": {
                 "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_DeepTauIDv2p1/tight/vloose/et/fakeFactors_tight.root",
                 "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_DeepTauIDv2p1/tight/vloose/mt/fakeFactors.root",
                 "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016_DeepTauIDv2p1/tight/vloose/tt/fakeFactors_tight.root"
@@ -134,6 +116,24 @@ def main(args):
                 "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018_DeepTauIDv2p1/tight/vloose/et/fakeFactors.root",
                 "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018_DeepTauIDv2p1/tight/vloose/mt/fakeFactors.root",
                 "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018_DeepTauIDv2p1/tight/vloose/tt/fakeFactors.root"
+            }
+        }
+    else:
+        fakefactordatabase = {
+            "2016": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2016/SM2016/tight/vloose/tt/fakeFactors.root"
+            },
+            "2017": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2017/SM2017/tight/vloose/tt/fakeFactors.root"
+            },
+            "2018": {
+                "et": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/et/fakeFactors.root",
+                "mt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/mt/fakeFactors.root",
+                "tt": cmsswbase + "/src/HTTutilities/Jet2TauFakes/data_2018/SM2018/tight/vloose/tt/fakeFactors.root"
             }
         }
 
