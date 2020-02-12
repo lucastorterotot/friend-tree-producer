@@ -144,11 +144,16 @@ def main(args):
 
     # Load fractions
     if args.determine_fractions:
-        conf = {
+        conf_default = {
             'categories': {
                 'et': ['inclusive'],
                 'mt': ['inclusive'],
                 'tt': ['tt1_inclusive', 'tt2_inclusive'],
+            }
+        }
+        conf = {
+            'categories': {
+                args.folder[:2]: conf_default['categories'][args.folder[:2]]
             }
         }
         fractions = ff_tools.determine_fractions(
