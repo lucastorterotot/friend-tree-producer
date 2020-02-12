@@ -163,7 +163,7 @@ def get_entries(*args):
     return
 
 
-def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None, shadow_input_ntuples_directory=None, input_server=None, conditional=False):
+def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders, events_per_job, batch_cluster, executable, walltime, max_jobs_per_batch, custom_workdir_path, restrict_to_channels, restrict_to_shifts, mode, output_server_srm, cores, dry, se_path=None, shadow_input_ntuples_directory=None, input_server=None, conditional=False, extra_parameters=''):
     logger.debug('starting prepare_jobs')
     cmsswbase = os.environ['CMSSW_BASE']
     ntuple_database = {}
@@ -316,7 +316,7 @@ def prepare_jobs(input_ntuples_list, inputs_base_folder, inputs_friends_folders,
     commandlist = []
     for jobnumber in job_database.keys():
         for subjobnumber in range(len(job_database[jobnumber])):
-            options = " ".join(["--" + k + " " + str(v) for (k, v) in job_database[jobnumber][subjobnumber].items() if k != "status"])
+            options = " ".join(["--" + k + " " + str(v) for (k, v) in job_database[jobnumber][subjobnumber].items() if k != "status"] + [extra_parameters])
             if mode == 'xrootd':
                 options += " --organize_outputs=false"
             commandline = "{EXEC} {OPTIONS}".format(EXEC=executable, OPTIONS=options)
@@ -583,6 +583,7 @@ def main():
     parser.add_argument('--conditional', type=bool, default=False, help='Use conditional network for all eras or single era networks.')
     parser.add_argument('--dry', action='store_true', default=False, help='dry run')
     parser.add_argument('--debug', action='store_true', default=False, help='debug')
+    parser.add_argument('--extra-parameters', type=str, help='Extra parameters to be appended for each call')
 
     args = parser.parse_args()
     input_ntuples_list = []
@@ -639,7 +640,7 @@ def main():
 
         extracted_friend_paths = extract_friend_paths(args.friend_ntuples_directories)
 
-        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path, args.shadow_input_ntuples_directory, args.input_server, conditional=args.conditional)
+        prepare_jobs(input_ntuples_list, args.input_ntuples_directory, extracted_friend_paths, args.events_per_job, args.batch_cluster, args.executable, args.walltime, args.max_jobs_per_batch, args.custom_workdir_path, args.restrict_to_channels, args.restrict_to_shifts, args.mode, args.output_server_xrootd, args.cores, args.dry, args.se_path, args.shadow_input_ntuples_directory, args.input_server, conditional=args.conditional, extra_parameters=args.extra_parameters)
 
         if args.shadow_input_ntuples_directory:
             if args.dry:
