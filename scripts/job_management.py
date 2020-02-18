@@ -243,8 +243,11 @@ def prepare_jobs(
 ):
     logger.debug("starting prepare_jobs")
     cmsswbase = os.environ["CMSSW_BASE"]
-    ntuple_database = {}
-
+    manager = Manager()
+    ntuple_database = manager.dict()
+    Global = manager.Namespace()
+    Global.counter = 0
+    Global.ninput_ntuples_list = len(input_ntuples_list)
     toDo = map(
         lambda e: {
             "f": e,
@@ -257,11 +260,6 @@ def prepare_jobs(
     )
     if cores > 1:
         pool = Pool(cores)
-        manager = Manager()
-        ntuple_database = manager.dict()
-        Global = manager.Namespace()
-        Global.counter = 0
-        Global.ninput_ntuples_list = len(input_ntuples_list)
 
         logger.debug("starting pool.map")
         x = pool.map(get_entries, toDo)
