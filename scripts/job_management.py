@@ -245,6 +245,16 @@ def prepare_jobs(
     cmsswbase = os.environ["CMSSW_BASE"]
     ntuple_database = {}
 
+    toDo = map(
+        lambda e: {
+            "f": e,
+            "restrict_to_channels": restrict_to_channels,
+            "restrict_to_shifts": restrict_to_shifts,
+            "ntuple_database": ntuple_database,
+            "Global": Global,
+        },
+        input_ntuples_list,
+    )
     if cores > 1:
         pool = Pool(cores)
         manager = Manager()
@@ -254,92 +264,10 @@ def prepare_jobs(
         Global.ninput_ntuples_list = len(input_ntuples_list)
 
         logger.debug("starting pool.map")
-        x = pool.map(
-            get_entries,
-            map(
-                lambda e: {
-                    "f": e,
-                    "restrict_to_channels": restrict_to_channels,
-                    "restrict_to_shifts": restrict_to_shifts,
-                    "ntuple_database": ntuple_database,
-                    "Global": Global,
-                },
-                input_ntuples_list,
-            ),
-        )
+        x = pool.map(get_entries, toDo)
     else:
-        for f in input_ntuples_list:
-            restrict_to_channels_file = copy.deepcopy(restrict_to_channels)
-            nick = f.split("/")[-1].replace(".root", "")
-            print "Saving inputs for %s" % nick
-            if "SingleMuon_Run" in nick or "MuTauFinalState" in nick:
-                restrict_to_channels_file = (
-                    list(set(["mt", "mm"]).intersection(restrict_to_channels_file))
-                    if len(restrict_to_channels_file) > 0
-                    else ["mt", "mm"]
-                )
-                print "\tWarning: restrict %s to '%s' channel(s)" % (
-                    nick,
-                    restrict_to_channels_file,
-                )
-            if (
-                "SingleElectron_Run" in nick
-                or "EGamma_Run" in nick
-                or "ElTauFinalState" in nick
-            ):
-                restrict_to_channels_file = (
-                    list(set(["et"]).intersection(restrict_to_channels_file))
-                    if len(restrict_to_channels_file) > 0
-                    else ["et"]
-                )
-                print "\tWarning: restrict %s to '%s' channel(s)" % (
-                    nick,
-                    restrict_to_channels_file,
-                )
-            if "Tau_Run" in nick or "TauTauFinalState" in nick:
-                restrict_to_channels_file = (
-                    list(set(["tt"]).intersection(restrict_to_channels_file))
-                    if len(restrict_to_channels_file) > 0
-                    else ["tt"]
-                )
-                print "\tWarning: restrict %s to '%s' channel(s)" % (
-                    nick,
-                    restrict_to_channels_file,
-                )
-            if "MuonEG_Run" in nick or "ElMuFinalState" in nick:
-                restrict_to_channels_file = (
-                    list(set(["em"]).intersection(restrict_to_channels_file))
-                    if len(restrict_to_channels_file) > 0
-                    else ["em"]
-                )
-                print "\tWarning: restrict %s to '%s' channel(s)" % (
-                    nick,
-                    restrict_to_channels_file,
-                )
-            ntuple_database[nick] = {}
-            ntuple_database[nick]["path"] = f
-            F = r.TFile.Open(f, "read")
-            pipelines = [k.GetName() for k in F.GetListOfKeys()]
-            if len(restrict_to_channels_file) > 0 or (
-                len(restrict_to_channels_file) == 0 and len(restrict_to_channels) > 0
-            ):
-                pipelines = [
-                    p for p in pipelines if p.split("_")[0] in restrict_to_channels_file
-                ]
-            if len(restrict_to_shifts) > 0:
-                pipelines_restricted = []
-                for p in pipelines:
-                    for shift in restrict_to_shifts:
-                        if fnmatch.fnmatch(p.split("_")[1], shift):
-                            pipelines_restricted.append(p)
-                            break
-                pipelines = pipelines_restricted
-            ntuple_database[nick]["pipelines"] = {}
-            for p in pipelines:
-                print "Pipeline: {}".format(p)
-                ntuple_database[nick]["pipelines"][p] = (
-                    F.Get(p).Get("ntuple").GetEntries()
-                )
+        for e in toDo:
+            get_entries(e)
 
     job_database = {0: []}
     job_number = 0
@@ -1024,6 +952,7 @@ def main():
     parser.add_argument(
         "--extra-parameters",
         type=str,
+        default="",
         help="Extra parameters to be appended for each call",
     )
     parser.add_argument("--all", action="store_true", default=False, help="debug")
