@@ -8,10 +8,6 @@ import os, json, logging
 logger = logging.getLogger("job_managment")
 import uproot
 
-# import ROOT as r
-# r.PyConfig.IgnoreCommandLineOptions = True
-# r.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
-
 from threading import Lock
 
 s_print_lock = Lock()
@@ -106,7 +102,6 @@ def get_entries(*args):
         )
 
     F = uproot.open(f)
-    #FRoot = r.TFile.Open(f, "read")
     pipelines = [x.strip(";1") for x in F.keys() ]
     if len(restrict_to_channels_file) > 0 or len(restrict_to_channels) > 0:
         pipelines = [
@@ -115,11 +110,9 @@ def get_entries(*args):
     if len(restrict_to_shifts) > 0:
         pipelines = [p for p in pipelines if p.split("_")[1] in restrict_to_shifts]
     pipelieness = {}
-    #pipelienessRoot = {}
     for p in pipelines:
         try:
             pipelieness[p] = F[p+"/ntuple"].numentries
-            #pipelienessRoot[p] = FRoot.Get(p).Get("ntuple").GetEntries()
         except:
             import sys
 
@@ -128,12 +121,6 @@ def get_entries(*args):
                 logger.critical("problem in file: %s pipeline: %s" % (f, p))
             raise
     del F
-    # for p in pipelines:
-    #     if pipelieness[p] != pipelienessRoot[p]:
-    #         with s_print_lock:
-    #                 print("pipeline doesnt match: {}".format(p) )
-    #                 print("{} vs {}".format(pipelieness[p],pipelienessRoot[p]) )
-    #                 raise
     with s_print_lock:
         Global.counter += 1
         logger.info(
