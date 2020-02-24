@@ -6,10 +6,7 @@ import time
 import os, json, logging
 
 logger = logging.getLogger("job_managment")
-import ROOT as r
-
-r.PyConfig.IgnoreCommandLineOptions = True
-r.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
+import uproot
 
 from threading import Lock
 
@@ -104,12 +101,9 @@ def get_entries(*args):
             % (nick, restrict_to_channels_file)
         )
 
-    F = r.TFile.Open(f, "read")
-
-    pipelines = [k.GetName() for k in F.GetListOfKeys()]
-    if len(restrict_to_channels_file) > 0 or (
-        len(restrict_to_channels_file) == 0 and len(restrict_to_channels) > 0
-    ):
+    F = uproot.open(f)
+    pipelines = [x.strip(";1") for x in F.keys() ]
+    if len(restrict_to_channels_file) > 0 or len(restrict_to_channels) > 0:
         pipelines = [
             p for p in pipelines if p.split("_")[0] in restrict_to_channels_file
         ]
@@ -118,7 +112,7 @@ def get_entries(*args):
     pipelieness = {}
     for p in pipelines:
         try:
-            pipelieness[p] = F.Get(p).Get("ntuple").GetEntries()
+            pipelieness[p] = F[p+"/ntuple"].numentries
         except:
             import sys
 
@@ -126,7 +120,6 @@ def get_entries(*args):
                 print "Unexpected error:", sys.exc_info()[0]
                 logger.critical("problem in file: %s pipeline: %s" % (f, p))
             raise
-    F.Close()
     del F
     with s_print_lock:
         Global.counter += 1
