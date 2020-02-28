@@ -1,6 +1,7 @@
 import os, json, logging
 
 logger = logging.getLogger("job_managment")
+from streampaths import *
 import ROOT as r
 from multiprocessing import Pool
 

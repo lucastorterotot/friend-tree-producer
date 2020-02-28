@@ -6,12 +6,11 @@ import time
 import os, json, logging
 
 logger = logging.getLogger("job_managment")
+from streampaths import *
 import uproot
 
 from threading import Lock
-
 s_print_lock = Lock()
-
 
 def extract_friend_paths(packed_paths):
     extracted_paths = {"em": [], "et": [], "mt": [], "tt": []}

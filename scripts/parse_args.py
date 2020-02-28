@@ -116,7 +116,7 @@ def setup_parser():
     parser.add_argument(
         "--restrict_to_channels",
         nargs="+",
-        default=[],
+        default=["em","mt","et","tt"],
         help="Produce friends only for certain channels",
     )
     parser.add_argument(

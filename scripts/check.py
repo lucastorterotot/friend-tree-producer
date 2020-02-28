@@ -4,6 +4,7 @@ import re
 import os, json, logging
 
 logger = logging.getLogger("job_managment")
+from streampaths import *
 import ROOT as r
 
 r.PyConfig.IgnoreCommandLineOptions = True
