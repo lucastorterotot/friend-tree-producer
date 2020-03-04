@@ -1,0 +1,122 @@
+map_arguments:
+  dR: DiTauDeltaR
+  njets: njets
+  m_pt: pt_2
+  e_pt: pt_1
+
+rooworkspace:
+  em_qcd_osss:
+    WorkspaceWeightNames: em_qcd_osss_binned_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_extrap_up:
+    WorkspaceWeightNames: em_qcd_extrap_up_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_extrap_down:
+    WorkspaceWeightNames: em_qcd_extrap_down_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_0jet_unc1_up:
+    WorkspaceWeightNames: em_qcd_osss_0jet_rateup_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_0jet_unc1_down:
+    WorkspaceWeightNames: em_qcd_osss_0jet_ratedown_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_0jet_unc2_up:
+    WorkspaceWeightNames: em_qcd_osss_0jet_shapeup_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_0jet_unc2_down:
+    WorkspaceWeightNames: em_qcd_osss_0jet_shapedown_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_1jet_unc1_up:
+    WorkspaceWeightNames: em_qcd_osss_1jet_rateup_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_1jet_unc1_down:
+    WorkspaceWeightNames: em_qcd_osss_1jet_ratedown_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_1jet_unc2_up:
+    WorkspaceWeightNames: em_qcd_osss_1jet_shapeup_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_1jet_unc2_down:
+    WorkspaceWeightNames: em_qcd_osss_1jet_shapedown_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_2jet_unc1_up:
+    WorkspaceWeightNames: em_qcd_osss_2jet_rateup_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_2jet_unc1_down:
+    WorkspaceWeightNames: em_qcd_osss_2jet_ratedown_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_2jet_unc2_up:
+    WorkspaceWeightNames: em_qcd_osss_2jet_shapeup_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_2jet_unc2_down:
+    WorkspaceWeightNames: em_qcd_osss_2jet_shapedown_Weight
+    WorkspaceObjectArguments: [dR, njets]
+
+  em_qcd_osss_stat_0jet_unc1_up:
+    WorkspaceWeightNames: em_qcd_osss_stat_0jet_rateup_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_0jet_unc1_down:
+    WorkspaceWeightNames: em_qcd_osss_stat_0jet_ratedown_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_0jet_unc2_up:
+    WorkspaceWeightNames: em_qcd_osss_stat_0jet_shapeup_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_0jet_unc2_down:
+    WorkspaceWeightNames: em_qcd_osss_stat_0jet_shapedown_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_1jet_unc1_up:
+    WorkspaceWeightNames: em_qcd_osss_stat_1jet_rateup_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_1jet_unc1_down:
+    WorkspaceWeightNames: em_qcd_osss_stat_1jet_ratedown_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_1jet_unc2_up:
+    WorkspaceWeightNames: em_qcd_osss_stat_1jet_shapeup_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_1jet_unc2_down:
+    WorkspaceWeightNames: em_qcd_osss_stat_1jet_shapedown_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_2jet_unc1_up:
+    WorkspaceWeightNames: em_qcd_osss_stat_2jet_rateup_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_2jet_unc1_down:
+    WorkspaceWeightNames: em_qcd_osss_stat_2jet_ratedown_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_2jet_unc2_up:
+    WorkspaceWeightNames: em_qcd_osss_stat_2jet_shapeup_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_stat_2jet_unc2_down:
+    WorkspaceWeightNames: em_qcd_osss_stat_2jet_shapedown_Weight
+    WorkspaceObjectArguments: [dR, njets, m_pt, e_pt]
+
+  em_qcd_osss_os_corr:
+    WorkspaceWeightNames: em_qcd_extrap_uncert_Weight
+    WorkspaceObjectArguments: [m_pt, e_pt]
+
+
+hist:
+  Null
