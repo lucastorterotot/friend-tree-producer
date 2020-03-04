@@ -49,7 +49,7 @@ def parse_arguments():
     parser.add_argument("--first-entry", "--first_entry", "--start", default=0, type=int, help="Index of first event to process.")
     parser.add_argument("--last-entry", "--last_entry", "--end", default=-1, type=int, help="Index of last event to process.")
 
-    parser.add_argument("--pipeline", default=None, type=str, help="Directory within rootfile.")
+    parser.add_argument("--pipeline", "--pipelines", "--folder", nargs="?", default=None, type=str, help="Directory within rootfile.")
     parser.add_argument("--output-dir", type=str, default='.', help="Tag of output files.")
 
     parser.add_argument("--rooworkspace-file", type=str, default=None, help="List of files with friend trees.")
@@ -103,12 +103,12 @@ em_pipelines = [
 ]
 
 
-def filter_data_channels(channels):
-    if "SingleElectron" in filename or "_ElTau" in filename:
+def filter_data_channels(channels, datafile):
+    if "SingleElectron" in datafile or "_ElTau" in datafile:
         channels = set(channels) & set(["et"])
-    elif "SingleMuon" in filename or "_MuTau" in filename:
+    elif "SingleMuon" in datafile or "_MuTau" in datafile:
         channels = set(channels) & set(["mt"])
-    elif ("Tau" in filename and "Run%s" % era in filename) or "_TauTau" in filename:
+    elif ("Tau" in datafile and "Run%s" % era in datafile) or "_TauTau" in datafile:
         channels = set(channels) & set(["tt"])
     else:
         channels = set(channels) & set(["et", "mt", "tt"])
@@ -173,7 +173,7 @@ def apply_with_rooworkspace(
             os.makedirs(os.path.dirname(outputfile))
         output_file = ROOT.TFile(outputfile, rootfilemode)
 
-    filter_data_channels(channels)
+    filter_data_channels(channels, datafile)
 
     # Prepare data inputs
     input_file = ROOT.TFile(datafile, "READ")
@@ -187,6 +187,8 @@ def apply_with_rooworkspace(
             print 'process pipelines: %s' % pipelines
 
         for pipeline in pipelines:
+
+            pipeline = pipeline.replace(channel + '_', '')
 
             # Prepare data inputs
             input_tree = input_file.Get("%s_%s/%s" % (channel, pipeline, treename))
@@ -297,7 +299,7 @@ def main(args):
             treename=args.tree,
             rootfilemode="recreate" if not args.dry else 'read',
             dry=args.dry,
-            pipelines=em_pipelines if args.pipeline is None else args.pipeline,
+            pipelines=em_pipelines if args.pipeline is None else [args.pipeline] if isinstance(args.pipeline, six.string_types) else args.pipeline,
             all_relevant_pipelines=args.all_relevant_pipelines,
         )
     else:
