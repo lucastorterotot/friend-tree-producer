@@ -103,6 +103,17 @@ em_pipelines = [
 ]
 
 
+def filter_data_channels(channels):
+    if "SingleElectron" in filename or "_ElTau" in filename:
+        channels = set(channels) & set(["et"])
+    elif "SingleMuon" in filename or "_MuTau" in filename:
+        channels = set(channels) & set(["mt"])
+    elif ("Tau" in filename and "Run%s" % era in filename) or "_TauTau" in filename:
+        channels = set(channels) & set(["tt"])
+    else:
+        channels = set(channels) & set(["et", "mt", "tt"])
+
+
 def apply_with_rooworkspace(
         datafile,
         era,
@@ -161,6 +172,8 @@ def apply_with_rooworkspace(
         if not os.path.exists(os.path.dirname(outputfile)):
             os.makedirs(os.path.dirname(outputfile))
         output_file = ROOT.TFile(outputfile, rootfilemode)
+
+    filter_data_channels(channels)
 
     # Prepare data inputs
     input_file = ROOT.TFile(datafile, "READ")
