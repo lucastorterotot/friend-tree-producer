@@ -287,10 +287,10 @@ def prepare_jobs(
     if custom_workdir_path:
         if not os.path.exists(custom_workdir_path):
             os.makedirs(custom_workdir_path)
-        workdir_path = os.path.join(custom_workdir_path, executable + "_workdir")
+        workdir_path = os.path.join(custom_workdir_path, executable.replace('.py', '') + "_workdir")
     else:
         workdir_path = os.path.join(
-            os.environ["CMSSW_BASE"], "src", executable + "_workdir"
+            os.environ["CMSSW_BASE"], "src", executable.replace('.py', '') + "_workdir"
         )
     if not os.path.exists(workdir_path):
         os.makedirs(workdir_path)
@@ -336,11 +336,11 @@ def prepare_jobs(
     shellscript_content = shellscript_template.format(
         COMMANDS=commands, TASKDIR=workdir_path
     )
-    executable_path = os.path.join(workdir_path, "condor_" + executable + ".sh")
+    executable_path = os.path.join(workdir_path, "condor_" + executable.replace('.py', '') + ".sh")
     gc_executable_path = os.path.join(
-        workdir_path, "condor_" + executable + "_forGC.sh"
+        workdir_path, "condor_" + executable.replace('.py', '') + "_forGC.sh"
     )
-    jobdb_path = os.path.join(workdir_path, "condor_" + executable + ".json")
+    jobdb_path = os.path.join(workdir_path, "condor_" + executable.replace('.py', '') + ".json")
     datasetdb_path = os.path.join(workdir_path, "dataset.json")
     with open(executable_path, "w") as shellscript:
         shellscript.write(shellscript_content)
@@ -352,7 +352,7 @@ def prepare_jobs(
         shellscript.close()
     if mode == "xrootd":
         global gc_date_tag
-        gc_date_tag = "{}_{}".format(executable, time.strftime("%Y-%m-%d_%H-%M-%S"))
+        gc_date_tag = "{}_{}".format(executable.replace('.py', ''), time.strftime("%Y-%m-%d_%H-%M-%S"))
 
         os.makedirs(os.path.join(os.environ["CMSSW_BASE"], "src", gc_date_tag))
         with open(
@@ -360,7 +360,7 @@ def prepare_jobs(
                 os.environ["CMSSW_BASE"],
                 "src",
                 gc_date_tag,
-                "condor_{}_forGC.sh".format(executable),
+                "condor_{}_forGC.sh".format(executable.replace('.py', '')),
             ),
             "w",
         ) as shellscript:
@@ -372,7 +372,7 @@ def prepare_jobs(
             os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
             shellscript.close()
         gc_executable_path = "$CMSSW_BASE/src/{}/condor_{}_forGC.sh".format(
-            gc_date_tag, executable
+            gc_date_tag, executable.replace('.py', '')
         )
     condorjdl_template_path = os.path.join(
         os.environ["CMSSW_BASE"],
@@ -431,7 +431,7 @@ def prepare_jobs(
         )
     if mode == "xrootd":
         gc_content = gc_content.replace("&&(TARGET.ProvidesEKPResources==True)", "")
-    gc_path = os.path.join(workdir_path, "grid_control_{}.conf".format(executable))
+    gc_path = os.path.join(workdir_path, "grid_control_{}.conf".format(executable.replace('.py', '')))
     with open(gc_path, "w") as gc:
         gc.write(gc_content)
         gc.close()
@@ -444,7 +444,7 @@ def prepare_jobs(
     printout_list = []
     for index, (first, last) in enumerate(zip(first_borders, last_borders)):
         condorjdl_path = os.path.join(
-            workdir_path, "condor_" + executable + "_%d.jdl" % index
+            workdir_path, "condor_" + executable.replace('.py', '') + "_%d.jdl" % index
         )
         argument_list = np.arange(first, last + 1)
         if not os.path.exists(os.path.join(workdir_path, "logging", str(index))):

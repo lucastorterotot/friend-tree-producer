@@ -55,14 +55,14 @@ def check_output_files_wrap(args):
 
 def check_and_resubmit(executable, custom_workdir_path, mode, check_all, cores):
     if custom_workdir_path:
-        workdir_path = os.path.join(custom_workdir_path, executable + "_workdir")
+        workdir_path = os.path.join(custom_workdir_path, executable.replace('.py', '') + "_workdir")
     else:
         workdir_path = os.path.join(
-            os.environ["CMSSW_BASE"], "src", executable + "_workdir"
+            os.environ["CMSSW_BASE"], "src", executable.replace('.py', '') + "_workdir"
         )
 
     # Read job-database (same for HTCondor and GC)
-    jobdb_path = os.path.join(workdir_path, "condor_" + executable + ".json")
+    jobdb_path = os.path.join(workdir_path, "condor_" + executable.replace('.py', '') + ".json")
     jobdb_file = open(jobdb_path, "r")
     jobdb = json.loads(jobdb_file.read())
 
@@ -97,7 +97,7 @@ def check_and_resubmit(executable, custom_workdir_path, mode, check_all, cores):
                 filepath = os.path.join(workdir_path, nick, filename)
             elif mode == "xrootd":
                 gc_path = os.path.join(
-                    workdir_path, "grid_control_{}.conf".format(executable)
+                    workdir_path, "grid_control_{}.conf".format(executable.replace('.py', ''))
                 )
                 with open(gc_path, "r") as gc_file:
                     for line in gc_file.readlines():
@@ -160,10 +160,10 @@ def check_and_resubmit(executable, custom_workdir_path, mode, check_all, cores):
         os.makedirs(os.path.join(workdir_path, "logging", "remaining"))
 
     # Save resubmittion script
-    condor_jdl_path = os.path.join(workdir_path, "condor_" + executable + "_0.jdl")
+    condor_jdl_path = os.path.join(workdir_path, "condor_" + executable.replace('.py', '') + "_0.jdl")
     with open(condor_jdl_path, "r") as file:
         condor_jdl_resubmit = file.read()
-    condor_jdl_resubmit_file = "condor_" + executable + "_resubmit.jdl"
+    condor_jdl_resubmit_file = "condor_" + executable.replace('.py', '') + "_resubmit.jdl"
     condor_jdl_resubmit_path = os.path.join(workdir_path, condor_jdl_resubmit_file)
     condor_jdl_resubmit = re.sub(
         "\_0.txt", "_resubmit.txt", condor_jdl_resubmit

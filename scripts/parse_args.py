@@ -17,6 +17,7 @@ def setup_parser():
             "FakeFactors",
             "ZPtMReweighting",
             "TauTriggers",
+            "emQCDWeightsProducer.py",
         ],
         help="Executable to be used for friend tree creation ob the batch system.",
     )

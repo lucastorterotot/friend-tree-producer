@@ -30,19 +30,19 @@ def write_trees_to_files(info):
 
 def collect_outputs(executable, cores, custom_workdir_path, mode):
     if custom_workdir_path:
-        workdir_path = os.path.join(custom_workdir_path, executable + "_workdir")
+        workdir_path = os.path.join(custom_workdir_path, executable.replace('.py', '') + "_workdir")
     else:
         workdir_path = os.path.join(
-            os.environ["CMSSW_BASE"], "src", executable + "_workdir"
+            os.environ["CMSSW_BASE"], "src", executable.replace('.py', '') + "_workdir"
         )
-    jobdb_path = os.path.join(workdir_path, "condor_" + executable + ".json")
+    jobdb_path = os.path.join(workdir_path, "condor_" + executable.replace('.py', '') + ".json")
     datasetdb_path = os.path.join(workdir_path, "dataset.json")
-    gc_path = os.path.join(workdir_path, "grid_control_{}.conf".format(executable))
+    gc_path = os.path.join(workdir_path, "grid_control_{}.conf".format(executable.replace('.py', '')))
     jobdb_file = open(jobdb_path, "r")
     jobdb = json.loads(jobdb_file.read())
     datasetdb_file = open(datasetdb_path, "r")
     datasetdb = json.loads(datasetdb_file.read())
-    collection_path = os.path.join(workdir_path, executable + "_collected")
+    collection_path = os.path.join(workdir_path, executable.replace('.py', '') + "_collected")
     if not os.path.exists(collection_path):
         os.makedirs(collection_path)
     # print jobdb
