@@ -182,8 +182,8 @@ def check_and_resubmit(executable, custom_workdir_path, mode, check_all, cores):
         print
         print "To run the resubmission, check {} first".format(condor_jdl_resubmit_path)
         print "Command:"
-        print "cd {TASKDIR}; condor_submit {CONDORJDL}".format(
-            TASKDIR=workdir_path, CONDORJDL=condor_jdl_resubmit_file
+        print "condor_submit {CONDORJDL}".format(
+            TASKDIR=os.path.abspath(workdir_path), CONDORJDL=os.path.abspath(condor_jdl_resubmit_file)
         )
         print
     else:

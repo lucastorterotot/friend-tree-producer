@@ -334,7 +334,7 @@ def prepare_jobs(
         echo 0
     """
     shellscript_content = shellscript_template.format(
-        COMMANDS=commands, TASKDIR=workdir_path
+        COMMANDS=commands, TASKDIR=os.path.abspath(workdir_path)
     )
     executable_path = os.path.join(workdir_path, "condor_" + executable.replace('.py', '') + ".sh")
     gc_executable_path = os.path.join(
@@ -366,7 +366,7 @@ def prepare_jobs(
         ) as shellscript:
             shellscript.write(
                 shellscript_content.replace("$1", "$GC_JOB_ID").replace(
-                    "cd {TASKDIR}\n".format(TASKDIR=workdir_path), ""
+                    "cd {TASKDIR}\n".format(TASKDIR=os.path.abspath(workdir_path)), ""
                 )
             )
             os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
@@ -453,7 +453,7 @@ def prepare_jobs(
         with open(arguments_path, "w") as arguments_file:
             arguments_file.write("\n".join([str(arg) for arg in argument_list]))
             arguments_file.close()
-        njobs = "arguments from arguments_%d.txt" % (index)
+        njobs = "arguments from %s/arguments_%d.txt" % (os.path.abspath(workdir_path), index)
         if batch_cluster in ["etp6", "etp7", "lxplus6", "lxplus7", "rwth"]:
             if walltime > 0:
                 condorjdl_content = condorjdl_template.format(
@@ -474,17 +474,17 @@ def prepare_jobs(
                 )
         else:
             condorjdl_content = condorjdl_template.format(
-                TASKDIR=workdir_path,
+                TASKDIR=os.path.abspath(workdir_path),
                 TASKNUMBER=str(index),
-                EXECUTABLE=executable_path,
+                EXECUTABLE=os.path.abspath(executable_path),
                 NJOBS=njobs,
             )
         with open(condorjdl_path, "w") as condorjdl:
             condorjdl.write(condorjdl_content)
             condorjdl.close()
         printout_list.append(
-            "cd {TASKDIR}; condor_submit {CONDORJDL}".format(
-                TASKDIR=workdir_path, CONDORJDL=condorjdl_path
+            "condor_submit {CONDORJDL}".format(
+                TASKDIR=os.path.abspath(workdir_path), CONDORJDL=os.path.abspath(condorjdl_path)
             )
         )
     print
