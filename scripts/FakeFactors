@@ -86,8 +86,8 @@ def parse_arguments():
     )
     parser.add_argument('--determine-fractions', action='store_true', default=False, help='determine fractions')
     parser.add_argument('--use-mva-tauid', action='store_true', default=False, help='use mva tau id')
-    parser.add_argument("--fractionsfile", type=str, help="fractionsfile")
-    parser.add_argument("--configkey", type=str, default='m_vis', help="configkey")
+    parser.add_argument("--fractionsfile", default="", type=str, help="fractionsfile")
+    parser.add_argument("--configkey", type=str, default="", help="configkey")
     parser.add_argument("--tag", type=str, default='mssmMVA', help="Tag of output files.")
     parser.add_argument("--output-dir", type=str, default='.', help="Tag of output files.")
 
@@ -148,7 +148,7 @@ def main(args):
             'categories': {
                 'et': ['inclusive'],
                 'mt': ['inclusive'],
-                'tt': ['tt1_inclusive', 'tt2_inclusive'],
+                'tt': ['inclusive'],# 'tt2_inclusive'],
             }
         }
         conf = {
@@ -156,12 +156,37 @@ def main(args):
                 args.folder[:2]: conf_default['categories'][args.folder[:2]]
             }
         }
+        default_fractionsfile = {
+            "2016": {
+                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_mt_njets2bins_mt_1_puppi/2016-2016_mt_njets2bins_mt_1_puppi-mt-shapes.root",
+                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_et_njets2bins_mt_1_puppi/2016-2016_et_njets2bins_mt_1_puppi-et-shapes.root",
+                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_tt_njets2bins_m_vis/2016-2016_tt_njets2bins_m_vis-tt-shapes.root"
+            },
+            "2017": {
+                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_mt_njets2bins_mt_1_puppi/2017-2017_mt_njets2bins_mt_1_puppi-mt-shapes.root",
+                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_et_njets2bins_mt_1_puppi/2017-2017_et_njets2bins_mt_1_puppi-et-shapes.root",
+                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_tt_njets2bins_m_vis/2017-2017_tt_njets2bins_m_vis-tt-shapes.root"
+            },
+            "2018": {
+                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_mt_njets2bins_mt_1_puppi/2018-2018_mt_njets2bins_mt_1_puppi-mt-shapes.root",
+                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_et_njets2bins_mt_1_puppi/2018-2018_et_njets2bins_mt_1_puppi-et-shapes.root",
+                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_tt_njets2bins_m_vis/2018-2018_tt_njets2bins_m_vis-tt-shapes.root"
+            }
+        }
+        default_configkey = "njets2bins_mt_1_puppi" if args.folder[:2] in ["mt","et"] else "njets2bins_m_vis"
+        fractionsfile = args.fractionsfile
+        if fractionsfile == "":
+            fractionsfile = default_fractionsfile[era][args.folder[:2]]
+        configkey = args.configkey
+        if configkey == "":
+            configkey = default_configkey
+
         fractions = ff_tools.determine_fractions(
             config=conf,
-            configkey=args.configkey,
-            fractionsfile=args.fractionsfile,
+            configkey=configkey,
+            fractionsfile=fractionsfile,
             era=era,
-            emb=False,
+            emb=True,
             tag=args.tag,
             era_labels={
                 era: 'Run%s' % (era)
@@ -171,7 +196,7 @@ def main(args):
         fractions = ff_tools.load_fractions(
             configpath="",
             configkey="",
-            use_fractions_from_worspace=True,
+            use_fractions_from_workspace=True,
             workspace="%s/src/HiggsAnalysis/friend-tree-producer/data/input_params/htt_ff_fractions_%s.root"%(cmsswbase, era),
             fractionfiles="", era=era
         )
@@ -193,9 +218,9 @@ def main(args):
         category_mode="inclusive",
         fakefactordirectories=fakefactordatabase[era],
         fractions=fractions,
-        use_fractions_from_worspace=False if args.determine_fractions else True,
+        use_fractions_from_workspace=False if args.determine_fractions else True,
         configpath=cmsswbase + "/src/HiggsAnalysis/fake-factor-application/config.yaml",
-        expression=args.configkey,
+        expression=configkey,
         era=era,
         pipeline_selection=args.folder,
         treename=args.tree,
@@ -216,7 +241,7 @@ if __name__ == "__main__":
                 args.first_entry,
                 args.last_entry
             ),
-            logging.WARNING
+            logging.DEBUG
         )
 
     main(args)
