@@ -62,6 +62,7 @@ int main(int argc, char **argv) {
     std::string weight_directory = std::string(std::getenv("CMSSW_BASE"))+"/src/HiggsAnalysis/friend-tree-producer/data/zptm_reweighting/";
     unsigned int first_entry = 0;
     unsigned int last_entry = 9;
+    bool debug = false;
     po::variables_map vm;
     po::options_description config("configuration");
     config.add_options()
@@ -73,7 +74,9 @@ int main(int argc, char **argv) {
        ("tree",          po::value<std::string>(&tree)->default_value(tree))
        ("first_entry",   po::value<unsigned int>(&first_entry)->default_value(first_entry))
        ("last_entry",    po::value<unsigned int>(&last_entry)->default_value(last_entry))
-       ("datasets",  po::value<std::string>(&datasets)->default_value(datasets));
+       ("datasets",  po::value<std::string>(&datasets)->default_value(datasets))
+       ("debug,d", po::bool_switch(&debug), "debug printout");
+       // ("debug", po::value<bool>(&debug)->default_value(debug));
     po::store(po::command_line_parser(argc, argv).options(config).run(), vm);
     po::notify(vm);
     // Add additional info inferred from options above
@@ -125,15 +128,17 @@ int main(int argc, char **argv) {
 
     // Initialize outputs for the tree
       Float_t zptmass_weight = 1.0; // default value in case no reweighting is needed
-      zptm_friend->Branch(weight_name.c_str(), &(zptmass_weight), weight_name + "/F");
+      zptm_friend->Branch(weight_name.c_str(), &(zptmass_weight), (weight_name + "/F").c_str());
 
   // Reweighting only DY with mass>50
     m_applyReweighting = boost::regex_search(input.c_str(), boost::regex("DY.?JetsToLLM(50|150)", boost::regex::icase | boost::regex::extended));
     if (! m_applyReweighting) std::cout << "m_applyReweighting == false\n";
 
+    if (debug) std::cout << "inputtree entries: " << inputtree->GetEntries() << std::endl;
   // Loop over desired events of the input tree & compute outputs
     for (unsigned int i = first_entry; i <= last_entry; i++)
     {
+      if (debug) std::cout << "entry " << i << "/" << last_entry << std::endl;
       inputtree->GetEntry(i);
 
       if (m_applyReweighting)
@@ -151,6 +156,6 @@ int main(int argc, char **argv) {
     out->Close();
     in->Close();
 
-  std::cout << "done";
+  std::cout << "\ndone";
   return 0;
 }
