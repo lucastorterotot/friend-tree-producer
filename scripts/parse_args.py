@@ -16,6 +16,7 @@ def setup_parser():
             "NNrecoil",
             "FakeFactors",
             "ZPtMReweighting",
+            "ZPtMReweighting_workspace",
             "TauTriggers",
             "emQCDWeightsProducer.py",
         ],
