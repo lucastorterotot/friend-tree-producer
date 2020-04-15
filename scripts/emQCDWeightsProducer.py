@@ -238,7 +238,10 @@ def apply_with_rooworkspace(
                             if arg.startswith('e_'):
                                 arg0 = arg.replace('e_', '') + '_1'
                             elif arg.startswith('m_'):
-                                arg0 = arg.replace('m_', '') + '_2'
+                                if channel == 'mt':
+                                    arg0 = arg.replace('m_', '') + '_1'
+                                elif channel == 'em':
+                                    arg0 = arg.replace('m_', '') + '_2'
                             else:
                                 raise Exception('unclear unpacking variable %s' % arg)
 
