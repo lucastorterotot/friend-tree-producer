@@ -86,6 +86,7 @@ def parse_arguments():
     )
     parser.add_argument('--determine-fractions', action='store_true', default=False, help='determine fractions')
     parser.add_argument('--use-mva-tauid', action='store_true', default=False, help='use mva tau id')
+    parser.add_argument('--use-ztt', action='store_true', default=False, help='use mva tau id')
     parser.add_argument("--fractionsfile", default="", type=str, help="fractionsfile")
     parser.add_argument("--configkey", type=str, default="", help="configkey")
     parser.add_argument("--tag", type=str, default='mssmMVA', help="Tag of output files.")
@@ -148,9 +149,11 @@ def main(args):
             'categories': {
                 'et': ['inclusive'],
                 'mt': ['inclusive'],
-                'tt': ['inclusive'],# 'tt2_inclusive'],
+                'tt': ['inclusive'],
             }
         }
+        if args.use_mva_tauid:
+            conf_default['categories']['tt'] = ['tt1_inclusive', 'tt2_inclusive']  # for last available mva ff
         conf = {
             'categories': {
                 args.folder[:2]: conf_default['categories'][args.folder[:2]]
@@ -173,7 +176,7 @@ def main(args):
                 "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_tt_njets2bins_m_vis/2018-2018_tt_njets2bins_m_vis-tt-shapes.root"
             }
         }
-        default_configkey = "njets2bins_mt_1_puppi" if args.folder[:2] in ["mt","et"] else "njets2bins_m_vis"
+        default_configkey = "njets2bins_mt_1_puppi" if args.folder[:2] in ["mt", "et"] else "njets2bins_m_vis"
         fractionsfile = args.fractionsfile
         if fractionsfile == "":
             fractionsfile = default_fractionsfile[era][args.folder[:2]]
@@ -186,7 +189,7 @@ def main(args):
             configkey=configkey,
             fractionsfile=fractionsfile,
             era=era,
-            emb=True,
+            emb=not args.use_ztt,
             tag=args.tag,
             era_labels={
                 era: 'Run%s' % (era)
