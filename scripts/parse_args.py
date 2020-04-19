@@ -19,6 +19,7 @@ def setup_parser():
             "ZPtMReweighting_workspace",
             "TauTriggers",
             "emQCDWeightsProducer.py",
+            "extraWeightsProducer.py",
         ],
         help="Executable to be used for friend tree creation ob the batch system.",
     )
