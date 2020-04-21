@@ -182,20 +182,31 @@ def addBranch(
 
             # disable unnecessary branches
             input_tree.SetBranchStatus("*", 0)
-            # Prepare branches
-            output_buffer = {}
             output_expr = {}
             variables = set()
             for branch in config["%s_%s" % (channel, pipeline)].keys():
-                output_buffer[branch] = numpy.zeros(1, dtype=float)
+                output_expr[branch] = config["%s_%s" % (channel, pipeline)][branch]['formula']
                 if not dry:
-                    output_tree.Branch(branch, output_buffer[branch], "%s/%s" % (branch, config["%s_%s" % (channel, pipeline)][branch]['type']))
-                    output_expr[branch] = config["%s_%s" % (channel, pipeline)][branch]['formula']
                     vv = set(re.findall(r'[a-zA-Z_]\w*', output_expr[branch])) - set(['abs', 'min', 'max'])
                     for r in vv:
                         variables.add(r)
                         print "active Branch Name split:", r
                         input_tree.SetBranchStatus(r, 1)
+
+            # Prepare branches
+            output_buffer = {}
+            output_tree_branches = {}
+            for branch in config["%s_%s" % (channel, pipeline)].keys():
+                # output_buffer[branch] = numpy.zeros(1, dtype=float)
+                output_buffer[branch] = array('f', [0])
+                if not dry:
+                    print 'branch:', branch, output_buffer[branch], "%s/%s" % (branch, config["%s_%s" % (channel, pipeline)][branch]['type'])
+                    output_tree_branches[branch] = output_tree.Branch(
+                        branch,
+                        output_buffer[branch],
+                        "%s/%s" % (branch, config["%s_%s" % (channel, pipeline)][branch]['type']))
+
+                    output_tree.SetBranchAddress(branch, output_buffer[branch])
 
             # Fill tree
             if eventrange[1] > 0:
@@ -229,14 +240,15 @@ def addBranch(
                         ddict[v] = getattr(event, v)
                     varvalue = eval(s, ddict)
 
-                    output_buffer[branch_name] = varvalue
+                    output_buffer[branch_name][0] = varvalue
 
                 if not dry:
                     output_tree.Fill()
 
             # Save
             if not dry:
-                output_tree.Write()
+                output_tree.SetEntries()
+                output_tree.Write("", ROOT.TFile.kOverwrite)
                 print "Successfully output_tree: %s / %s" % (outputfile, output_tree)
 
         print 'Done pipeline: %s' % pipeline
