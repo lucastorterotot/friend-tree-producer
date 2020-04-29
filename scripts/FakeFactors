@@ -161,22 +161,22 @@ def main(args):
         }
         default_fractionsfile = {
             "2016": {
-                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_mt_njets2bins_mt_1_puppi/2016-2016_mt_njets2bins_mt_1_puppi-mt-shapes.root",
-                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_et_njets2bins_mt_1_puppi/2016-2016_et_njets2bins_mt_1_puppi-et-shapes.root",
-                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_tt_njets2bins_m_vis/2016-2016_tt_njets2bins_m_vis-tt-shapes.root"
+                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_mt_njets3bins_mt_1_puppi/2016-2016_mt_njets3bins_mt_1_puppi-mt-shapes.root",
+                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_et_njets3bins_mt_1_puppi/2016-2016_et_njets3bins_mt_1_puppi-et-shapes.root",
+                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2016_tt_njets3bins_m_vis/2016-2016_tt_njets3bins_m_vis-tt-shapes.root"
             },
             "2017": {
-                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_mt_njets2bins_mt_1_puppi/2017-2017_mt_njets2bins_mt_1_puppi-mt-shapes.root",
-                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_et_njets2bins_mt_1_puppi/2017-2017_et_njets2bins_mt_1_puppi-et-shapes.root",
-                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_tt_njets2bins_m_vis/2017-2017_tt_njets2bins_m_vis-tt-shapes.root"
+                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_mt_njets3bins_mt_1_puppi/2017-2017_mt_njets3bins_mt_1_puppi-mt-shapes.root",
+                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_et_njets3bins_mt_1_puppi/2017-2017_et_njets3bins_mt_1_puppi-et-shapes.root",
+                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2017_tt_njets3bins_m_vis/2017-2017_tt_njets3bins_m_vis-tt-shapes.root"
             },
             "2018": {
-                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_mt_njets2bins_mt_1_puppi/2018-2018_mt_njets2bins_mt_1_puppi-mt-shapes.root",
-                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_et_njets2bins_mt_1_puppi/2018-2018_et_njets2bins_mt_1_puppi-et-shapes.root",
-                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_tt_njets2bins_m_vis/2018-2018_tt_njets2bins_m_vis-tt-shapes.root"
+                "mt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_mt_njets3bins_mt_1_puppi/2018-2018_mt_njets3bins_mt_1_puppi-mt-shapes.root",
+                "et": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_et_njets3bins_mt_1_puppi/2018-2018_et_njets3bins_mt_1_puppi-et-shapes.root",
+                "tt": "/portal/ekpbms1/home/jbechtel/postprocessing/eoy/fraction/output/shapes/2018_tt_njets3bins_m_vis/2018-2018_tt_njets3bins_m_vis-tt-shapes.root"
             }
         }
-        default_configkey = "njets2bins_mt_1_puppi" if args.folder[:2] in ["mt", "et"] else "njets2bins_m_vis"
+        default_configkey = "njets3bins_mt_1_puppi" if args.folder[:2] in ["mt", "et"] else "njets3bins_m_vis"
         fractionsfile = args.fractionsfile
         if fractionsfile == "":
             fractionsfile = default_fractionsfile[era][args.folder[:2]]

@@ -404,7 +404,7 @@ def prepare_jobs(
             gc_content = gc_template.format(
                 STORAGE_DIR=gc_storage_dir,
                 EXTRA_SE_INFO=extra_se_info,
-                TASKDIR=workdir_path,
+                TASKDIR=workdir_path+"/gc_workdir",
                 EXECUTABLE=gc_executable_path,
                 WALLTIME=time.strftime("%H:%M:%S", time.gmtime(walltime)),
                 NJOBS=job_number,
@@ -414,7 +414,7 @@ def prepare_jobs(
             gc_content = gc_template.format(
                 STORAGE_DIR=gc_storage_dir,
                 EXTRA_SE_INFO=extra_se_info,
-                TASKDIR=workdir_path,
+                TASKDIR=workdir_path+"/gc_workdir",
                 EXECUTABLE=gc_executable_path,
                 WALLTIME="24:00:00",
                 NJOBS=job_number,
@@ -424,7 +424,7 @@ def prepare_jobs(
         gc_content = gc_template.format(
             STORAGE_DIR=gc_storage_dir,
             EXTRA_SE_INFO=extra_se_info,
-            TASKDIR=workdir_path,
+            TASKDIR=workdir_path+"/gc_workdir",
             EXECUTABLE=gc_executable_path,
             WALLTIME="1:00:00",
             NJOBS=job_number,
@@ -457,7 +457,7 @@ def prepare_jobs(
         if batch_cluster in ["etp6", "etp7", "lxplus6", "lxplus7", "rwth"]:
             if walltime > 0:
                 condorjdl_content = condorjdl_template.format(
-                    TASKDIR=workdir_path,
+                    TASKDIR=workdir_path+"/gc_workdir",
                     TASKNUMBER=str(index),
                     EXECUTABLE=executable_path,
                     NJOBS=njobs,
@@ -466,7 +466,7 @@ def prepare_jobs(
             else:
                 print "Warning: walltime for %s cluster not set. Setting it to 1h." % batch_cluster
                 condorjdl_content = condorjdl_template.format(
-                    TASKDIR=workdir_path,
+                    TASKDIR=workdir_path+"/gc_workdir",
                     TASKNUMBER=str(index),
                     EXECUTABLE=executable_path,
                     NJOBS=njobs,
