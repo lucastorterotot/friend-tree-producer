@@ -18,6 +18,7 @@ def setup_parser():
             "ZPtMReweighting",
             "ZPtMReweighting_workspace",
             "TauTriggers",
+            "HHKinFit",
             "emQCDWeightsProducer.py",
             "extraWeightsProducer.py",
         ],
