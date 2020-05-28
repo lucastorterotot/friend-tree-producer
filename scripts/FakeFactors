@@ -84,12 +84,12 @@ def parse_arguments():
         help=
         "Set path for to local cmssw for submission with Grid-Control"
     )
-    parser.add_argument('--determine-fractions', action='store_true', default=False, help='determine fractions')
+    parser.add_argument('--determine-fractions', action='store_false', default=True, help='determine fractions')
     parser.add_argument('--use-mva-tauid', action='store_true', default=False, help='use mva tau id')
     parser.add_argument('--use-ztt', action='store_true', default=False, help='use mva tau id')
     parser.add_argument("--fractionsfile", default="", type=str, help="fractionsfile")
     parser.add_argument("--configkey", type=str, default="", help="configkey")
-    parser.add_argument("--tag", type=str, default='mssmMVA', help="Tag of output files.")
+    parser.add_argument("--tag", type=str, default='smhtt', help="Tag of output files.")
     parser.add_argument("--output-dir", type=str, default='.', help="Tag of output files.")
 
     return parser.parse_args()
