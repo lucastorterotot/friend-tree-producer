@@ -61,13 +61,17 @@ int main(int argc, char* argv[])
    Int_t           njets;
    Int_t           nbtag;
   //  Double_t        b1_dR;
-   Float_t        bcsv_1;
+  //  Float_t        bcsv_1;
    Float_t        bpt_1;
    Float_t        beta_1;
    Float_t        bphi_1;
    Float_t        bm_1;
+   Float_t        jpt;
+   Float_t        jeta;
+   Float_t        jphi;
+   Float_t        jm;
   //  Float_t        b2_dR;
-   Float_t        bcsv_2;
+  //  Float_t        bcsv_2;
    Float_t        bpt_2;
    Float_t        beta_2;
    Float_t        bphi_2;
@@ -94,13 +98,17 @@ int main(int argc, char* argv[])
    TBranch        *b_njets;
    TBranch        *b_nbtag;
   //  TBranch        *b_b1_dR;
-   TBranch        *b_bcsv_1;
+  //  TBranch        *b_bcsv_1;
    TBranch        *b_bpt_1;
    TBranch        *b_beta_1;
    TBranch        *b_bphi_1;
    TBranch        *b_bm_1;
+   TBranch        *b_jpt;
+   TBranch        *b_jeta;
+   TBranch        *b_jphi;
+   TBranch        *b_jm;
   //  TBranch        *b_b2_dR;
-   TBranch        *b_bcsv_2;
+  //  TBranch        *b_bcsv_2;
    TBranch        *b_bpt_2;
    TBranch        *b_beta_2;
    TBranch        *b_bphi_2;
@@ -127,16 +135,20 @@ int main(int argc, char* argv[])
    inputtree->SetBranchAddress("njets", &njets, &b_njets);
    inputtree->SetBranchAddress("nbtag", &nbtag, &b_nbtag);
    
-   inputtree->SetBranchAddress("bcsv_1", &bcsv_1, &b_bcsv_1);
-   inputtree->SetBranchAddress("bpt_1", &bpt_1, &b_bpt_1);
-   inputtree->SetBranchAddress("bphi_1", &bphi_1, &b_bphi_1);
-   inputtree->SetBranchAddress("beta_1", &beta_1, &b_beta_1);
-   inputtree->SetBranchAddress("bm_1", &bm_1, &b_bm_1);
-   inputtree->SetBranchAddress("bcsv_2", &bcsv_2, &b_bcsv_2);
-   inputtree->SetBranchAddress("bpt_2", &bpt_2, &b_bpt_2);
-   inputtree->SetBranchAddress("bphi_2", &bphi_2, &b_bphi_2);
-   inputtree->SetBranchAddress("beta_2", &beta_2, &b_beta_2);
-   inputtree->SetBranchAddress("bm_2", &bm_2, &b_bm_2);
+  //  inputtree->SetBranchAddress("bcsv_1", &bcsv_1, &b_bcsv_1);
+   inputtree->SetBranchAddress("bpt_bReg_1", &bpt_1, &b_bpt_1);
+   inputtree->SetBranchAddress("bphi_bReg_1", &bphi_1, &b_bphi_1);
+   inputtree->SetBranchAddress("beta_bReg_1", &beta_1, &b_beta_1);
+   inputtree->SetBranchAddress("bm_bReg_1", &bm_1, &b_bm_1);
+  //  inputtree->SetBranchAddress("bcsv_2", &bcsv_2, &b_bcsv_2);
+   inputtree->SetBranchAddress("bpt_bReg_2", &bpt_2, &b_bpt_2);
+   inputtree->SetBranchAddress("bphi_bReg_2", &bphi_2, &b_bphi_2);
+   inputtree->SetBranchAddress("beta_bReg_2", &beta_2, &b_beta_2);
+   inputtree->SetBranchAddress("bm_bReg_2", &bm_2, &b_bm_2);
+   inputtree->SetBranchAddress("highCSVjetUsedFordiBJetSystemPt_bReg", &jpt, &b_jpt);
+   inputtree->SetBranchAddress("highCSVjetUsedFordiBJetSystemEta_bReg", &jeta, &b_jeta);
+   inputtree->SetBranchAddress("highCSVjetUsedFordiBJetSystemPhi_bReg", &jphi, &b_jphi);
+   inputtree->SetBranchAddress("highCSVjetUsedFordiBJetSystemMass_bReg", &jm, &b_jm);
    inputtree->SetBranchAddress("pt_1", &pt_1, &b_pt_1);
    inputtree->SetBranchAddress("phi_1", &phi_1, &b_phi_1);
    inputtree->SetBranchAddress("eta_1", &eta_1, &b_eta_1);
@@ -163,7 +175,7 @@ int main(int argc, char* argv[])
   for (unsigned int i = first_entry; i <= last_entry; i++) {
     inputtree->GetEntry(i);
     std::cout << "Event " << i-first_entry << " (" << round(100*float(i-first_entry)/float(last_entry-first_entry)) << "%)" << "\t\r" << std::flush;
-    if (nbtag < 2) {
+    if (nbtag < 1) {
       kinfit_mH = -10;
       kinfit_mh2 = -10;
       kinfit_chi2 = -10;
@@ -175,9 +187,24 @@ int main(int argc, char* argv[])
       mkinfitfriend->Fill();      
       continue;
     }   
+    if ((nbtag==1) && (jpt<0)) { // happens when no non-bjet exists or non-bjet is too close in dR to b-jet
+      kinfit_mH = -10;
+      kinfit_mh2 = -10;
+      kinfit_chi2 = -10;
+      kinfit_prob = -10;
+      kinfit_pull1 = -10;
+      kinfit_pull2 = -10;
+      kinfit_pullB = -10;
+      kinfit_convergence = -10;
+      mkinfitfriend->Fill();      
+      continue;
+    }
+    
     //define input vectors
     TLorentzVector b1      = TLorentzVector(); b1.SetPtEtaPhiM(bpt_1,beta_1,bphi_1,bm_1);
-    TLorentzVector b2      = TLorentzVector(); b2.SetPtEtaPhiM(bpt_2,beta_2,bphi_2,bm_2);
+    TLorentzVector b2      = TLorentzVector(); 
+    if (nbtag==1) b2.SetPtEtaPhiM(jpt,jeta,jphi,jm);
+    else b2.SetPtEtaPhiM(bpt_2,beta_2,bphi_2,bm_2);
     TLorentzVector tau1vis = TLorentzVector(); tau1vis.SetPtEtaPhiM(pt_1,eta_1,phi_1,m_1);
     TLorentzVector tau2vis = TLorentzVector(); tau2vis.SetPtEtaPhiM(pt_2,eta_2,phi_2,m_2);
 
