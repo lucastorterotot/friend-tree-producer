@@ -20,6 +20,7 @@ def setup_parser():
             "TauTriggers",
             "HHKinFit",
             "emQCDWeightsProducer.py",
+            "electronScaleFactorProducer.py",
             "extraWeightsProducer.py",
         ],
         help="Executable to be used for friend tree creation ob the batch system.",

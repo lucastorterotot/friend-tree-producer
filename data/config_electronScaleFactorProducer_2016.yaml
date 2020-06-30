@@ -1,0 +1,34 @@
+map_arguments:
+  m_pt: pt_2
+  e_pt: pt_1
+  e_eta: eta_1
+  e_iso: iso_1
+
+rooworkspace:
+  e_id_ratio_emb:
+    WorkspaceWeightNames: id_weight_new
+    WorkspaceObjectArguments: [e_pt, e_eta]
+    embedding: True
+
+  e_iso_ratio_emb:
+    WorkspaceWeightNames: iso_weight_new
+    WorkspaceObjectArguments: [e_pt, e_eta, e_iso]
+    embedding: True
+
+  e_id_ratio:
+    WorkspaceWeightNames: id_weight_new
+    WorkspaceObjectArguments: [e_pt, e_eta]
+    embedding: False
+
+  e_iso_ratio:
+    WorkspaceWeightNames: iso_weight_new
+    WorkspaceObjectArguments: [e_pt, e_eta, e_iso]
+    embedding: False
+
+  # em_qcd_osss_os_corr:
+  #   WorkspaceWeightNames: em_qcd_extrap_uncert_Weight
+  #   WorkspaceObjectArguments: [m_pt, e_pt]
+  #   embedding: False
+  
+hist:
+  Null
