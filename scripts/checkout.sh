@@ -14,8 +14,6 @@ if [ ! "$1" == "" ]; then
   echo "$0: Checking out $CMSSW"
 fi
 
-
-export SCRAM_ARCH=slc6_amd64_gcc700
 export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch
 source $VO_CMS_SW_DIR/cmsset_default.sh
 
