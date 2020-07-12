@@ -3,7 +3,7 @@
 
 ### Setup of CMSSW release
 NUM_CORES=10
-CMSSW=CMSSW_10_2_14
+CMSSW=CMSSW_10_2_22
 
 if [ "$1" == "" ]; then
   echo "$0: Explicit CMSSW version is not provided. Checking out as default $CMSSW"
