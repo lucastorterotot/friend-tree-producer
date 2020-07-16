@@ -103,7 +103,7 @@ em_pipelines = [
 ]
 
 
-def filter_data_channels(channels, datafile):
+def filter_data_channels(channels, datafile, era):
     if "SingleElectron" in datafile or "_ElTau" in datafile:
         channels = set(channels) & set(["et"])
     elif "SingleMuon" in datafile or "_MuTau" in datafile:
@@ -141,7 +141,6 @@ def apply_with_rooworkspace(
     if 'map_arguments' in config:
         map_arguments = config['map_arguments']
 
-    QCDFactorWorkspace = config["rooworkspace"]
     workspace_object_names = config["rooworkspace"].keys()
 
     # Reading rooworkspace file
@@ -173,7 +172,7 @@ def apply_with_rooworkspace(
             os.makedirs(os.path.dirname(outputfile))
         output_file = ROOT.TFile(outputfile, rootfilemode)
 
-    filter_data_channels(channels, datafile)
+    filter_data_channels(channels, datafile, era)
 
     # Prepare data inputs
     input_file = ROOT.TFile(datafile, "READ")
@@ -248,7 +247,7 @@ def apply_with_rooworkspace(
                         parameters.append(getattr(event, arg0))
                         m_functors[ws_name]["argSet"].setRealValue(arg, getattr(event, arg0))
 
-                    output_buffer[ws_name] = m_functors[ws_name]['function'].getVal(m_functors[ws_name]['argSet'])
+                    output_buffer[ws_name][0] = m_functors[ws_name]['function'].getVal(m_functors[ws_name]['argSet'])
                     # output_buffer[ws_name] = m_functors[ws_name]['functor'].eval(parameters)
 
                 if not dry:
