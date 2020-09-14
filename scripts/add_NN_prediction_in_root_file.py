@@ -1,147 +1,216 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import time
-times = [time.time()]
+#__requires__= "Keras==2.2.4"
 
-from optparse import OptionParser
-usage = "usage: %prog [options] <json file for NN> <input root file>"
-parser = OptionParser(usage=usage)
-parser.add_option("-s", "--suffix", dest = "suffix",
-                                    default="NN")
-parser.add_option("-v", "--verbose", dest = "verbose",
-                                    default=0)
-
-(options,args) = parser.parse_args()
-
-NNname = args[0].split('/')[-1].replace('.json', '').replace("-","_")
-
-# load json and create model
-times.append(time.time())
-
+"""
+    Example:
+        python HiggsAnalysis/friend-tree-producer/scripts/ add_NN_prediction_in_root_file.py \
+            --input <path to root file> \
+            --NN <path to NN json file> \
+            --output-dir  <out dir> \
+            --dry
+"""
+import os
+import sys
+import json
+import yaml
+import ROOT
+import numpy
+import copy
+from array import array
+import six
+import argparse
+import logging
+import pkg_resources
+#pkg_resources.require("Keras==2.2.4")
 from keras.models import model_from_json
+import uproot
+import numpy as np
 
-input_json = args[0]
-NN_weights_path_and_file = input_json.split('/')
-NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
-NN_weights_file = "/".join(NN_weights_path_and_file)
+logger = logging.getLogger()
 
-json_file = open(input_json, 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-loaded_model = model_from_json(loaded_model_json)
+pipelines = ["nominal"]
 
-# load weights into new model
-loaded_model.load_weights(NN_weights_file)
-print("Loaded model from disk:")
-print("\t{}".format(input_json))
 
-# Get infos on the trained NN
-infos = NN_weights_path_and_file[-1]
-infos = infos.replace('.h5', '')
-infos = infos.replace('NN_weights-', '')
+def setup_logging(output_file, level=logging.DEBUG):
+    logger.setLevel(level)
+    formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
 
-is_bottleneck = ("-bottleneck" == infos[-11:])
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
-bottleneck = ""
-if is_bottleneck:
-    infos = infos.replace('-bottleneck', '')
-    bottleneck = "-bottleneck"
+    file_handler = logging.FileHandler(output_file, "w")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-Nneurons = infos.split("-")[-2]
-Nlayers = infos.split("-")[-4]
-channel = infos.split("-")[-5]
 
-w_init_mode = infos.split("-")[-6]
-optimizer = infos.split("-")[-7]
-loss = infos.split("-")[-8]
-
-if options.verbose > 0:
-    print("Properties:")
-
-    print(
-        "\t{} channel, {} hidden layers of {} neurons with{} bottleneck".format(
-            channel,
-            Nlayers,
-            Nneurons,
-            "" if is_bottleneck else "out",
-        )
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="create friend trees for electron scale factors form a given RooWorkspace"
     )
-    print(
-        "\ttrained with {} optimizer, w_init {} and {} loss.".format(
-            optimizer,
-            w_init_mode,
-            loss,
-        )
+    parser.add_argument("--input", required=True, type=str, help="Input root file.")
+
+    parser.add_argument("--NN", required=True, type=str, help="Input NN json file.")
+
+    parser.add_argument(
+        "--tree", default="ntuple", type=str, help="Name of the root tree."
+    )
+    parser.add_argument(
+        "--enable-logging",
+        action="store_true",
+        help="Enable loggging for debug purposes.",
+    )
+    parser.add_argument(
+        "--cmsswbase",
+        default=os.environ["CMSSW_BASE"],
+        help="Set path for to local cmssw for submission with Grid-Control",
+    )
+
+    parser.add_argument(
+        "--first-entry",
+        "--first_entry",
+        "--start",
+        default=0,
+        type=int,
+        help="Index of first event to process.",
+    )
+    parser.add_argument(
+        "--last-entry",
+        "--last_entry",
+        "--end",
+        default=-1,
+        type=int,
+        help="Index of last event to process.",
+    )
+
+    parser.add_argument(
+        "--pipeline",
+        "--pipelines",
+        "--folder",
+        nargs="?",
+        default=None,
+        type=str,
+        help="Directory within rootfile.",
+    )
+    parser.add_argument(
+        "--output-dir", type=str, default=".", help="Tag of output files."
+    )
+
+    parser.add_argument("--config", nargs="?", type=str, default=None, help="Config")
+
+    parser.add_argument("--dry", action="store_true", default=False, help="dry run")
+
+    return parser.parse_args()
+
+def main(args):
+    print(args)
+    nickname = os.path.basename(args.input).replace(".root", "")
+    cmsswbase = args.cmsswbase
+    input_json = args.NN
+    
+    NNname = input_json.split('/')[-1].replace('.json', '').replace("-","_")
+
+    # load json and create model
+    NN_weights_path_and_file = input_json.split('/')
+    NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
+    NN_weights_file = "/".join(NN_weights_path_and_file)
+
+    json_file = open(input_json, 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+    
+    # load weights into new model
+    loaded_model.load_weights(NN_weights_file)
+    print("Loaded model from disk:")
+    print("\t{}".format(input_json))
+
+    # load root file and create friend tree
+    root_file_input = args.input
+    output_path = os.path.join(args.output_dir, nickname)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    root_file_output = os.path.join(
+        output_path,
+        "_".join(
+            filter(
+                                    None,
+                    [
+                        nickname,
+                        args.pipeline,
+                        str(args.first_entry),
+                        str(args.last_entry),
+                    ],
+                )
+            )
+            + ".root",
     )
     
-times.append(time.time())
-
-# load root file
-import uproot
-
-root_file_input = args[1]
-#root_file_input = "/data2/htt/trees/fakes/190819%HiggsSUSYGG450%mt_mssm_nominal/NtupleProducer/tree.root" # for debugging without having to provide args
-root_file_output = root_file_input.replace('.root', '-{}.root'.format(options.suffix))
-
-root_file_in = uproot.open(root_file_input)
-df = root_file_in['events'].pandas.df()
-
-import numpy as np
-df["mt_tt"] = (2*df["l1_pt"]*df["l2_pt"]*(1-np.cos(df["l1_phi"]-df["l2_phi"])))**.5
-
-inputs = [
-    "tau1_pt",
-    "tau1_eta",
-    "tau1_phi",
-    "tau2_pt",
-    "tau2_eta",
-    "tau2_phi",
-    # "jet1_pt",
-    # "jet1_eta",
-    # "jet1_phi",
-    # "jet2_pt",
-    # "jet2_eta",
-    # "jet2_phi",
-    # "recoil_pt",
-    # "recoil_eta",
-    # "recoil_phi",
-    "MET_pt",
-    "MET_phi",
-    "MET_covXX",
-    "MET_covXY",
-    "MET_covYY",
-    # "MET_significance",
-    "mT1",
-    "mT2",
-    "mTtt",
-    "mTtot",
+    root_file_in = uproot.open(root_file_input)
+    df = root_file_in['events'].pandas.df()
+    
+    df["mt_tt"] = (2*df["l1_pt"]*df["l2_pt"]*(1-np.cos(df["l1_phi"]-df["l2_phi"])))**.5
+    
+    inputs = [
+        "tau1_pt",
+        "tau1_eta",
+        "tau1_phi",
+        "tau2_pt",
+        "tau2_eta",
+        "tau2_phi",
+        # "jet1_pt",
+        # "jet1_eta",
+        # "jet1_phi",
+        # "jet2_pt",
+        # "jet2_eta",
+        # "jet2_phi",
+        # "recoil_pt",
+        # "recoil_eta",
+        # "recoil_phi",
+        "MET_pt",
+        "MET_phi",
+        "MET_covXX",
+        "MET_covXY",
+        "MET_covYY",
+        # "MET_significance",
+        "mT1",
+        "mT2",
+        "mTtt",
+        "mTtot",
     ]
+    
+    df["predictions_{}".format(NNname)] = loaded_model.predict(df[inputs])
+    
+    tree_dtype = {}
+    tree_data = {}
+    for b in df.keys():
+        tree_dtype[b] = df[b].dtype.name
+        if tree_dtype[b] == 'uint64':
+            tree_dtype[b] = 'int64'
+        tree_data[b] = np.array(df[b])
 
-times.append(time.time())
-df["predictions_{}".format(NNname)] = loaded_model.predict(df[inputs])
-times.append(time.time())
+    root_file_out = uproot.recreate(root_file_output)
+    print("Opened new file")
+    root_file_out.newtree('events', tree_dtype)
+    print("Created new tree")
+    root_file_out['events'].extend(tree_data)
+    print("New tree filled")
 
-tree_dtype = {}
-tree_data = {}
-for b in df.keys():
-    tree_dtype[b] = df[b].dtype.name
-    if tree_dtype[b] == 'uint64':
-        tree_dtype[b] = 'int64'
-    tree_data[b] = np.array(df[b])
+if __name__ == "__main__":
+    args = parse_arguments()
 
-root_file_out = uproot.recreate(root_file_output)
-print("Opened new file")
-root_file_out.newtree('events', tree_dtype)
-print("Created new tree")
-root_file_out['events'].extend(tree_data)
-print("New tree filled")
+    if args.enable_logging:
+        setup_logging(
+            "add_NN_prediction_in_root_file_%s_%s_%s_%s.log"
+            % (
+                os.path.basename(args.input).replace(".root", ""),
+                args.folder,
+                args.first_entry,
+                args.last_entry,
+            ),
+            logging.WARNING,
+        )
 
-
-times.append(time.time())
-
-print("Time sumary:")
-print("\t- Loading of the NN: {} s;".format(np.round(times[-4]-times[-5], 3)))
-print("\t- Loading of the root file: {} s;".format(np.round(times[-3]-times[-4], 3)))
-print("\t- Computing predictions on {} events: {} s <=> {} s for 10k events.".format(df.shape[0], np.round(times[-2]-times[-3],3), np.round((times[-2]-times[-3])/df.shape[0]*10000, 3)))
-print("\t- Creating new root file: {} s <=> {} s for 10k events.".format(np.round(times[-1]-times[-2],3), np.round((times[-1]-times[-2])/df.shape[0]*10000,3)))
+    main(args)
