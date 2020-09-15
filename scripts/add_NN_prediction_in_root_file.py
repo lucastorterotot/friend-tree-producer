@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 #__requires__= "Keras==2.2.4"
@@ -12,21 +12,12 @@
             --dry
 """
 import os
-import sys
-import json
-import yaml
-import ROOT
-import numpy
-import copy
-from array import array
-import six
+import numpy as np
 import argparse
 import logging
-import pkg_resources
 #pkg_resources.require("Keras==2.2.4")
 from keras.models import model_from_json
 import uproot
-import numpy as np
 
 logger = logging.getLogger()
 
@@ -61,11 +52,6 @@ def parse_arguments():
         "--enable-logging",
         action="store_true",
         help="Enable loggging for debug purposes.",
-    )
-    parser.add_argument(
-        "--cmsswbase",
-        default=os.environ["CMSSW_BASE"],
-        help="Set path for to local cmssw for submission with Grid-Control",
     )
 
     parser.add_argument(
@@ -107,7 +93,6 @@ def parse_arguments():
 def main(args):
     print(args)
     nickname = os.path.basename(args.input).replace(".root", "")
-    cmsswbase = args.cmsswbase
     input_json = args.NN
     
     NNname = input_json.split('/')[-1].replace('.json', '').replace("-","_")
@@ -149,54 +134,59 @@ def main(args):
     )
     
     root_file_in = uproot.open(root_file_input)
-    df = root_file_in['events'].pandas.df()
+    df = root_file_in['mt_nominal']['ntuple'].pandas.df()
     
-    df["mt_tt"] = (2*df["l1_pt"]*df["l2_pt"]*(1-np.cos(df["l1_phi"]-df["l2_phi"])))**.5
+    df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
+    for leg in [1,2]:
+        df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
+    df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
     
     inputs = [
-        "tau1_pt",
-        "tau1_eta",
-        "tau1_phi",
-        "tau2_pt",
-        "tau2_eta",
-        "tau2_phi",
-        # "jet1_pt",
-        # "jet1_eta",
-        # "jet1_phi",
-        # "jet2_pt",
-        # "jet2_eta",
-        # "jet2_phi",
+        "pt_1",
+        "eta_1",
+        "phi_1",
+        "pt_2",
+        "eta_2",
+        "phi_2",
+        "jpt_1",
+        "jeta_1",
+        "jphi_1",
+        "jpt_2",
+        "jeta_2",
+        "jphi_2",
         # "recoil_pt",
         # "recoil_eta",
         # "recoil_phi",
-        "MET_pt",
-        "MET_phi",
-        "MET_covXX",
-        "MET_covXY",
-        "MET_covYY",
+        "met",
+        "metphi",
+        "metcov00",
+        "metcov01",
+        "metcov11",
         # "MET_significance",
         "mT1",
         "mT2",
         "mTtt",
         "mTtot",
     ]
-    
+    print(df)
+    import pdb; pdb.set_trace()
     df["predictions_{}".format(NNname)] = loaded_model.predict(df[inputs])
-    
+    print(df)
     tree_dtype = {}
     tree_data = {}
-    for b in df.keys():
+    for b in [k for k in df.keys() if 'predictions' in k]:
         tree_dtype[b] = df[b].dtype.name
         if tree_dtype[b] == 'uint64':
             tree_dtype[b] = 'int64'
         tree_data[b] = np.array(df[b])
 
-    root_file_out = uproot.recreate(root_file_output)
-    print("Opened new file")
-    root_file_out.newtree('events', tree_dtype)
-    print("Created new tree")
-    root_file_out['events'].extend(tree_data)
-    print("New tree filled")
+    if not arg.dry:
+        root_file_out = uproot.recreate(root_file_output)
+        print("Opened new file")
+        root_file_out.newtree('events', tree_dtype)
+        print("Created new tree")
+        root_file_out['events'].extend(tree_data)
+        print("New tree filled")
 
 if __name__ == "__main__":
     args = parse_arguments()
