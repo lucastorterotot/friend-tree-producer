@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-
-#__requires__= "Keras==2.2.4"
 
 """
     Example:
@@ -15,14 +13,16 @@ import os
 import numpy as np
 import argparse
 import logging
-#pkg_resources.require("Keras==2.2.4")
 from keras.models import model_from_json
 import uproot
+import pandas
+from ROOT import TFile, TDirectoryFile, TTree
+import array
 
 logger = logging.getLogger()
 
-pipelines = ["nominal"]
-
+categories = ["nominal"]
+channels = ["mt"]#["tt", "mt", "et", "mm", "em", "ee"]
 
 def setup_logging(output_file, level=logging.DEBUG):
     logger.setLevel(level)
@@ -88,6 +88,8 @@ def parse_arguments():
 
     parser.add_argument("--dry", action="store_true", default=False, help="dry run")
 
+    parser.add_argument("--pandas", action="store_true", default=False, help="Whether to use arrays or pandas dataframe with uproot")
+
     return parser.parse_args()
 
 def main(args):
@@ -133,14 +135,6 @@ def main(args):
             + ".root",
     )
     
-    root_file_in = uproot.open(root_file_input)
-    df = root_file_in['mt_nominal']['ntuple'].pandas.df()
-    
-    df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
-    for leg in [1,2]:
-        df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
-    df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
-    
     inputs = [
         "pt_1",
         "eta_1",
@@ -168,25 +162,49 @@ def main(args):
         "mTtt",
         "mTtot",
     ]
-    print(df)
-    import pdb; pdb.set_trace()
-    df["predictions_{}".format(NNname)] = loaded_model.predict(df[inputs])
-    print(df)
-    tree_dtype = {}
-    tree_data = {}
-    for b in [k for k in df.keys() if 'predictions' in k]:
-        tree_dtype[b] = df[b].dtype.name
-        if tree_dtype[b] == 'uint64':
-            tree_dtype[b] = 'int64'
-        tree_data[b] = np.array(df[b])
 
-    if not arg.dry:
-        root_file_out = uproot.recreate(root_file_output)
+    root_file_in = uproot.open(root_file_input)
+    if not args.dry:
+        root_file_out = TFile(root_file_output, 'recreate')
         print("Opened new file")
-        root_file_out.newtree('events', tree_dtype)
-        print("Created new tree")
-        root_file_out['events'].extend(tree_data)
-        print("New tree filled")
+    for channel in channels:
+        for cat in categories:
+            print('process pipeline: %s_%s' % (channel, cat))
+            rootdir = TDirectoryFile('{}_{}'.format(channel, cat), '{}_{}'.format(channel, cat))
+            rootdir.cd()
+            tree = TTree(args.tree, args.tree)
+            leaves = NNname
+            leafValues = array.array("f", [0])
+            if args.pandas:
+                df = root_file_in['{}_{}'.format(channel, cat)][args.tree].pandas.df()
+            else:
+                _df = root_file_in['{}_{}'.format(channel, cat)][args.tree].arrays()
+                df = pandas.DataFrame()
+                keys_to_export = set(inputs+["pt_1", "pt_2", "phi_1", "phi_2", "met", "metphi"])
+                for key in ["mTtt", "mT1", "mT2", "mTtot"]:
+                    keys_to_export.remove(key)
+                for k in keys_to_export:
+                    df[k] = _df[k]
+            df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
+            for leg in [1,2]:
+                df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
+            df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
+    
+            df["predictions_{}".format(NNname)] = loaded_model.predict(df[inputs])
+
+            print("Filling new branch in tree...")
+            newBranch = tree.Branch(
+                "predictions_{}".format(NNname),
+                leafValues,
+                "predictions_{}/F".format(NNname)
+            )
+            for value in df["predictions_{}".format(NNname)].values:
+                leafValues[0] = value
+                tree.Fill()
+            print("Filled.")
+
+            if not args.dry:
+                tree.Write()
 
 if __name__ == "__main__":
     args = parse_arguments()
