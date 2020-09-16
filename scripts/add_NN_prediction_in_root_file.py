@@ -94,6 +94,8 @@ def parse_arguments():
 
     parser.add_argument("--dry", action="store_true", default=False, help="dry run")
 
+    parser.add_argument("--recreate", action="store_true", default=False, help="Whether to just update or fully-recreate the friend tree.")
+
     parser.add_argument("--pandas", action="store_true", default=False, help="Whether to use arrays or pandas dataframe with uproot")
 
     return parser.parse_args()
@@ -179,9 +181,13 @@ def main(args):
         categories = set([k.split('_')[-1] for k in root_file_in.keys() if any([c in k for c in channels])])
 
     if not args.dry:
-        root_file_out = TFile(root_file_output, 'recreate')
+        if args.recreate:
+            root_file_out = TFile(root_file_output, 'recreate')
+        else:
+            root_file_out = TFile(root_file_output, 'update')
         print("Opened new file")
     first_pass = True
+
     for channel in channels:
         for cat in categories:
             print('process pipeline: %s_%s' % (channel, cat))
