@@ -22,7 +22,7 @@ import array
 logger = logging.getLogger()
 
 categories = ["nominal"]
-channels = ["mt"]#["tt", "mt", "et", "mm", "em", "ee"]
+channels = ["mt", "et"]#["tt", "mt", "et", "mm", "em", "ee"]
 
 def setup_logging(output_file, level=logging.DEBUG):
     logger.setLevel(level)
@@ -167,14 +167,22 @@ def main(args):
     if not args.dry:
         root_file_out = TFile(root_file_output, 'recreate')
         print("Opened new file")
+    first_pass = True
     for channel in channels:
         for cat in categories:
             print('process pipeline: %s_%s' % (channel, cat))
-            rootdir = TDirectoryFile('{}_{}'.format(channel, cat), '{}_{}'.format(channel, cat))
-            rootdir.cd()
-            tree = TTree(args.tree, args.tree)
-            leaves = NNname
-            leafValues = array.array("f", [0])
+
+            if not first_pass and not args.dry:
+                root_file_out = TFile(root_file_output, 'update')
+            first_pass = False
+
+            if not args.dry:
+                rootdir = TDirectoryFile('{}_{}'.format(channel, cat), '{}_{}'.format(channel, cat))
+                rootdir.cd()
+                tree = TTree(args.tree, args.tree)
+                leaves = NNname
+                leafValues = array.array("f", [0])
+
             if args.pandas:
                 df = root_file_in['{}_{}'.format(channel, cat)][args.tree].pandas.df()
             else:
@@ -185,6 +193,7 @@ def main(args):
                     keys_to_export.remove(key)
                 for k in keys_to_export:
                     df[k] = _df[k]
+
             df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
             for leg in [1,2]:
                 df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
@@ -192,19 +201,20 @@ def main(args):
     
             df["predictions_{}".format(NNname)] = loaded_model.predict(df[inputs])
 
-            print("Filling new branch in tree...")
-            newBranch = tree.Branch(
-                "predictions_{}".format(NNname),
-                leafValues,
-                "predictions_{}/F".format(NNname)
-            )
-            for value in df["predictions_{}".format(NNname)].values:
-                leafValues[0] = value
-                tree.Fill()
-            print("Filled.")
-
             if not args.dry:
+                print("Filling new branch in tree...")
+                newBranch = tree.Branch(
+                    "predictions_{}".format(NNname),
+                    leafValues,
+                    "predictions_{}/F".format(NNname)
+                )
+                for value in df["predictions_{}".format(NNname)].values:
+                    leafValues[0] = value
+                    tree.Fill()
+                print("Filled.")
+
                 tree.Write()
+                root_file_out.Close()
 
 if __name__ == "__main__":
     args = parse_arguments()
