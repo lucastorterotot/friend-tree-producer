@@ -21,9 +21,6 @@ import array
 
 logger = logging.getLogger()
 
-categories = ["nominal"]
-channels = ["mt", "et"]#["tt", "mt", "et", "mm", "em", "ee"]
-
 def setup_logging(output_file, level=logging.DEBUG):
     logger.setLevel(level)
     formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
@@ -48,6 +45,15 @@ def parse_arguments():
     parser.add_argument(
         "--tree", default="ntuple", type=str, help="Name of the root tree."
     )
+
+    parser.add_argument(
+        "--channels", default="mt", type=str, help="Channels to process, comma separated."
+    )
+
+    parser.add_argument(
+        "--categories", default="nominal", type=str, help="Categories to process, comma separated OR 'all'."
+    )
+
     parser.add_argument(
         "--enable-logging",
         action="store_true",
@@ -94,6 +100,10 @@ def parse_arguments():
 
 def main(args):
     print(args)
+
+    channels = args.channels.split(',')
+    categories = args.categories.split(',')
+
     nickname = os.path.basename(args.input).replace(".root", "")
     input_json = args.NN
     
@@ -164,6 +174,10 @@ def main(args):
     ]
 
     root_file_in = uproot.open(root_file_input)
+
+    if 'all' in categories:
+        categories = set([k.split('_')[-1] for k in root_file_in.keys() if any([c in k for c in channels])])
+
     if not args.dry:
         root_file_out = TFile(root_file_output, 'recreate')
         print("Opened new file")
