@@ -196,17 +196,25 @@ def main(args):
                 root_file_out = TFile(root_file_output, 'update')
             first_pass = False
 
+            rootdirname = '{}_{}'.format(channel, cat)
             if not args.dry:
-                rootdir = TDirectoryFile('{}_{}'.format(channel, cat), '{}_{}'.format(channel, cat))
+                rootdir = root_file_out.GetDirectory(rootdirname)
+                if not rootdir:
+                    already_rootdir = False
+                    rootdir = TDirectoryFile(rootdirname, rootdirname)
+                else:
+                    already_rootdir = True
                 rootdir.cd()
+                if not args.recreate and already_rootdir:
+                    rootdir.Remove(rootdir.Get(args.tree))
                 tree = TTree(args.tree, args.tree)
                 leaves = NNname
                 leafValues = array.array("f", [0])
 
             if args.pandas:
-                df = root_file_in['{}_{}'.format(channel, cat)][args.tree].pandas.df()
+                df = root_file_in[rootdirname][args.tree].pandas.df()
             else:
-                _df = root_file_in['{}_{}'.format(channel, cat)][args.tree].arrays()
+                _df = root_file_in[rootdirname][args.tree].arrays()
                 df = pandas.DataFrame()
                 keys_to_export = set(inputs+["pt_1", "pt_2", "phi_1", "phi_2", "met", "metphi"])
                 for key in ["mTtt", "mT1", "mT2", "mTtot"]:
