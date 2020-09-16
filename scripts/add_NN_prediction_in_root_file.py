@@ -177,6 +177,8 @@ def main(args):
 
     root_file_in = uproot.open(root_file_input)
 
+    if 'all' in channels:
+        channels = set([k.split('_')[0] for k in root_file_in.keys() if 'nominal' in k])
     if 'all' in categories:
         categories = set([k.split('_')[-1] for k in root_file_in.keys() if any([c in k for c in channels])])
 
