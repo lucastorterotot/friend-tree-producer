@@ -100,6 +100,31 @@ def parse_arguments():
 
     return parser.parse_args()
 
+class NN_model_from_json(object):
+    
+    def __init__(self, json_file):
+        self.name = json_file.split('/')[-1].replace('.json', '').replace("-","_")
+        
+        # load json and create model
+        NN_weights_path_and_file = json_file.split('/')
+        NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
+        NN_weights_file = "/".join(NN_weights_path_and_file)
+        
+        json_file_ = open(json_file, 'r')
+        loaded_model_json = json_file_.read()
+        json_file_.close()
+        loaded_model = model_from_json(loaded_model_json)
+    
+        # load weights into new model
+        loaded_model.load_weights(NN_weights_file)
+        print("Loaded model from disk:")
+        print("\t{}".format(json_file))
+
+        self.NN = loaded_model
+            
+    def predict(self, filtered_df):
+        return self.NN.predict(filtered_df)
+
 def main(args):
     print(args)
 
@@ -107,45 +132,12 @@ def main(args):
     categories = args.categories.split(',')
 
     nickname = os.path.basename(args.input).replace(".root", "")
-    input_json = args.NN
-    
-    NNname = input_json.split('/')[-1].replace('.json', '').replace("-","_")
 
-    # load json and create model
-    NN_weights_path_and_file = input_json.split('/')
-    NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
-    NN_weights_file = "/".join(NN_weights_path_and_file)
-
-    json_file = open(input_json, 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    loaded_model = model_from_json(loaded_model_json)
-    
-    # load weights into new model
-    loaded_model.load_weights(NN_weights_file)
-    print("Loaded model from disk:")
-    print("\t{}".format(input_json))
-
-    # load root file and create friend tree
-    root_file_input = args.input
-    output_path = os.path.join(args.output_dir, nickname)
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-    root_file_output = os.path.join(
-        output_path,
-        "_".join(
-            filter(
-                                    None,
-                    [
-                        nickname,
-                        args.pipeline,
-                        str(args.first_entry),
-                        str(args.last_entry),
-                    ],
-                )
-            )
-            + ".root",
-    )
+    NN_jsons = args.NN.split(',')
+    NNs = {}
+    for NN_json in NN_jsons:
+        NN_object = NN_model_from_json(NN_json)
+        NNs[NN_object.name] = NN_object
     
     inputs = [
         "pt_1",
@@ -174,6 +166,27 @@ def main(args):
         "mTtt",
         "mTtot",
     ]
+
+    # load root file and create friend tree
+    root_file_input = args.input
+    output_path = os.path.join(args.output_dir, nickname)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    root_file_output = os.path.join(
+        output_path,
+        "_".join(
+            filter(
+                None,
+                [
+                    nickname,
+                    args.pipeline,
+                    str(args.first_entry),
+                    str(args.last_entry),
+                ],
+            )
+        )
+        + ".root",
+    )
 
     root_file_in = uproot.open(root_file_input)
 
@@ -210,8 +223,9 @@ def main(args):
                 if not args.recreate and already_rootdir:
                     rootdir.Remove(rootdir.Get(args.tree))
                 tree = TTree(args.tree, args.tree)
-                leaves = NNname
-                leafValues = array.array("f", [0])
+                leafValues = {}
+                for NN in NNs:
+                    leafValues[NN] = array.array("f", [0])
 
             if args.pandas:
                 df = root_file_in[rootdirname][args.tree].pandas.df()
@@ -229,17 +243,20 @@ def main(args):
                 df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
             df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
     
-            df["predictions_{}".format(NNname)] = loaded_model.predict(df[inputs])
+            for NN in NNs:
+                df["predictions_{}".format(NN)] = NNs[NN].predict(df[inputs])
 
             if not args.dry:
                 print("Filling new branch in tree...")
-                newBranch = tree.Branch(
-                    "predictions_{}".format(NNname),
-                    leafValues,
-                    "predictions_{}/F".format(NNname)
-                )
-                for value in df["predictions_{}".format(NNname)].values:
-                    leafValues[0] = value
+                for NN in NNs:
+                    newBranch = tree.Branch(
+                        "predictions_{}".format(NN),
+                        leafValues[NN],
+                        "predictions_{}/F".format(NN)
+                    )
+                for k in range(len(df["predictions_{}".format(NN)].values)):
+                    for NN in NNs:
+                        leafValues[NN][0] = df["predictions_{}".format(NN)].values[k]
                     tree.Fill()
                 print("Filled.")
 
