@@ -1,6 +1,13 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+import sys
+print(sys.path[0])
+sys.path = ['/home/ltortero/python/'] + sys.path
+print(sys.path[0])
+import keras
+print(keras.__file__)
+
 """
     Example:
         python HiggsAnalysis/friend-tree-producer/scripts/ add_NN_prediction_in_root_file.py \
