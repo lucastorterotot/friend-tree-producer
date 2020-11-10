@@ -10,9 +10,10 @@ print(keras.__file__)
 
 """
     Example:
-        python HiggsAnalysis/friend-tree-producer/scripts/ add_NN_prediction_in_root_file.py \
+        python HiggsAnalysis/friend-tree-producer/scripts/add_ML_models_prediction_in_root_file.py \
             --input <path to root file> \
-            --NN <path to NN json file> \
+            --DNNs <path to DNN json files> \
+            --XGBs <path to XGB json files> \
             --output-dir  <out dir> \
             --dry
 """
@@ -21,6 +22,7 @@ import numpy as np
 import argparse
 import logging
 from keras.models import model_from_json
+import xgboost as xgb
 import uproot
 import pandas
 from ROOT import TFile, TDirectoryFile, TTree
@@ -47,7 +49,9 @@ def parse_arguments():
     )
     parser.add_argument("--input", required=True, type=str, help="Input root file.")
 
-    parser.add_argument("--NN", required=True, type=str, help="Input NN json file.")
+    parser.add_argument("--DNNs", required=False, type=str, help="Input DNN json files.", default="")
+
+    parser.add_argument("--XGBs", required=False, type=str, help="Input XGB json files.", default="")
 
     parser.add_argument(
         "--tree", default="ntuple", type=str, help="Name of the root tree."
@@ -107,10 +111,10 @@ def parse_arguments():
 
     return parser.parse_args()
 
-class NN_model_from_json(object):
+class DNN_model_from_json(object):
     
     def __init__(self, json_file):
-        self.name = json_file.split('/')[-1].replace('.json', '').replace("-","_")
+        self.name = "DNN" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
         
         # load json and create model
         NN_weights_path_and_file = json_file.split('/')
@@ -127,10 +131,30 @@ class NN_model_from_json(object):
         print("Loaded model from disk:")
         print("\t{}".format(json_file))
 
-        self.NN = loaded_model
+        self.model = loaded_model
             
     def predict(self, filtered_df):
-        return self.NN.predict(filtered_df)
+        return self.model.predict(filtered_df)
+
+class XGB_model_from_json(object):
+    
+    def __init__(self, json_file):
+        self.name = "XGB" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
+        
+        # load json and create model
+        loaded_model = xgb.XGBRegressor()
+        json_file_ = open(json_file, 'r')
+        loaded_model_json = json_file_.read()
+        json_file_.close()
+        loaded_model.load_model(loaded_model_json)
+    
+        print("Loaded model from disk:")
+        print("\t{}".format(json_file))
+
+        self.model = loaded_model
+            
+    def predict(self, filtered_df):
+        return self.model.predict(np.r_[filtered_df])
 
 def main(args):
     print(args)
@@ -140,11 +164,15 @@ def main(args):
 
     nickname = os.path.basename(args.input).replace(".root", "")
 
-    NN_jsons = args.NN.split(',')
-    NNs = {}
-    for NN_json in NN_jsons:
-        NN_object = NN_model_from_json(NN_json)
-        NNs[NN_object.name] = NN_object
+    DNN_jsons = args.DNNs.split(',')
+    XGB_jsons = args.XGBs.split(',')
+    models = {}
+    for DNN_json in DNN_jsons:
+        DNN_object = DNN_model_from_json(DNN_json)
+        models[DNN_object.name] = DNN_object
+    for XGB_json in XGB_jsons:
+        XGB_object = XGB_model_from_json(XGB_json)
+        models[XGB_object.name] = XGB_object
     
     inputs = [
         "pt_1",
@@ -231,8 +259,8 @@ def main(args):
                     rootdir.Remove(rootdir.Get(args.tree))
                 tree = TTree(args.tree, args.tree)
                 leafValues = {}
-                for NN in NNs:
-                    leafValues[NN] = array.array("f", [0])
+                for model in models:
+                    leafValues[model] = array.array("f", [0])
 
             if args.pandas:
                 df = root_file_in[rootdirname][args.tree].pandas.df()
@@ -250,20 +278,20 @@ def main(args):
                 df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
             df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
     
-            for NN in NNs:
-                df["predictions_{}".format(NN)] = NNs[NN].predict(df[inputs])
+            for model in models:
+                df["predictions_{}".format(model)] = models[model].predict(df[inputs])
 
             if not args.dry:
                 print("Filling new branch in tree...")
-                for NN in NNs:
+                for model in models:
                     newBranch = tree.Branch(
-                        "predictions_{}".format(NN),
-                        leafValues[NN],
-                        "predictions_{}/F".format(NN)
+                        "predictions_{}".format(model),
+                        leafValues[model],
+                        "predictions_{}/F".format(model)
                     )
-                for k in range(len(df["predictions_{}".format(NN)].values)):
-                    for NN in NNs:
-                        leafValues[NN][0] = df["predictions_{}".format(NN)].values[k]
+                for k in range(len(df["predictions_{}".format(model)].values)):
+                    for model in models:
+                        leafValues[model][0] = df["predictions_{}".format(model)].values[k]
                     tree.Fill()
                 print("Filled.")
 
@@ -275,7 +303,7 @@ if __name__ == "__main__":
 
     if args.enable_logging:
         setup_logging(
-            "add_NN_prediction_in_root_file_%s_%s_%s_%s.log"
+            "add_ML_model_prediction_in_root_file_%s_%s_%s_%s.log"
             % (
                 os.path.basename(args.input).replace(".root", ""),
                 args.folder,

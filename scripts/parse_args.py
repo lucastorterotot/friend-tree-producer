@@ -22,7 +22,7 @@ def setup_parser():
             "emQCDWeightsProducer.py",
             "electronScaleFactorProducer.py",
             "extraWeightsProducer.py",
-            "add_NN_prediction_in_root_file.py",
+            "add_ML_model_prediction_in_root_file.py",
         ],
         help="Executable to be used for friend tree creation ob the batch system.",
     )
