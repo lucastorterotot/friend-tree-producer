@@ -163,7 +163,10 @@ def main(args):
     nickname = os.path.basename(args.input).replace(".root", "")
 
     DNN_jsons = args.DNNs.split(',')
+    DNN_jsons = [f for f in DNN_jsons if f != ""]
     XGB_jsons = args.XGBs.split(',')
+    XGB_jsons = [f for f in XGB_jsons if f != ""]
+
     models = {}
     for DNN_json in DNN_jsons:
         DNN_object = DNN_model_from_json(DNN_json)
