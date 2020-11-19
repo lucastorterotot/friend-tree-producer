@@ -115,7 +115,7 @@ def parse_arguments():
 class DNN_model_from_json(object):
     
     def __init__(self, json_file):
-        self.name = "DNN" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
+        self.name = "DNN_" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
         
         # load json and create model
         NN_weights_path_and_file = json_file.split('/')
@@ -129,7 +129,7 @@ class DNN_model_from_json(object):
     
         # load weights into new model
         loaded_model.load_weights(NN_weights_file)
-        print("Loaded model from disk:")
+        print("Loaded DNN model from disk:")
         print("\t{}".format(json_file))
 
         self.model = loaded_model
@@ -140,13 +140,13 @@ class DNN_model_from_json(object):
 class XGB_model_from_json(object):
     
     def __init__(self, json_file):
-        self.name = "XGB" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
+        self.name = "XGB_" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
         
         # load json and create model
         loaded_model = XGBRegressor()
         loaded_model.load_model(json_file)
     
-        print("Loaded model from disk:")
+        print("Loaded XGBRegressor model from disk:")
         print("\t{}".format(json_file))
 
         self.model = loaded_model
