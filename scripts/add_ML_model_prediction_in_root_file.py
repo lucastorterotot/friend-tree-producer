@@ -272,7 +272,7 @@ def main(args):
                 for key in ["mTtt", "mT1", "mT2", "mTtot"]:
                     keys_to_export.remove(key)
                 for k in keys_to_export:
-                    df[k] = _df[k]
+                    df[k] = _df[str.encode(k)]
 
             df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
             for leg in [1,2]:
