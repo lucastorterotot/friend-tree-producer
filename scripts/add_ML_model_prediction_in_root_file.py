@@ -1,12 +1,13 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
-print(sys.path[0])
-sys.path = ['/home/ltortero/python/'] + sys.path
-print(sys.path[0])
-import keras
-print(keras.__file__)
+# installation:
+# source /cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt/setup.sh
+# pip install --user xgboost==1.0.2
+# pip install --user keras==2.3.1
+
+import sys, os
+sys.path = ['{}/.local/lib/python3.7/site-packages/'.format(os.environ["HOME"])] + sys.path
 
 """
     Example:
@@ -17,7 +18,7 @@ print(keras.__file__)
             --output-dir  <out dir> \
             --dry
 """
-import os
+
 import numpy as np
 import argparse
 import logging
