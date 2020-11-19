@@ -23,7 +23,7 @@ import numpy as np
 import argparse
 import logging
 from keras.models import model_from_json
-import xgboost as xgb
+from xgboost import XGBRegressor
 import uproot
 import pandas
 from ROOT import TFile, TDirectoryFile, TTree
@@ -143,11 +143,8 @@ class XGB_model_from_json(object):
         self.name = "XGB" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
         
         # load json and create model
-        loaded_model = xgb.XGBRegressor()
-        json_file_ = open(json_file, 'r')
-        loaded_model_json = json_file_.read()
-        json_file_.close()
-        loaded_model.load_model(loaded_model_json)
+        loaded_model = XGBRegressor()
+        loaded_model.load_model(json_file)
     
         print("Loaded model from disk:")
         print("\t{}".format(json_file))
