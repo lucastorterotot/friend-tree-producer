@@ -7,7 +7,28 @@
 # pip install --user keras==2.3.1
 
 import sys, os
-sys.path = ['{}/.local/lib/python3.7/site-packages/'.format(os.environ["HOME"])] + sys.path
+
+# os.environ['LCG_VERSION'] = '98python3'
+# os.environ['CXX'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin/g++'
+# os.environ['FC'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin/gfortran'
+# os.environ['COMPILER_PATH'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7'
+# os.environ['CC'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin/gcc'
+# 
+# os.environ['MANPATH'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/share/man:/cvmfs/sft.cern.ch/lcg/releases/binutils/2.30-e5b21/x86_64-centos7/share/man:/cvmfs/cms.cern.ch/share/man:'
+# os.environ['XDG_SESSION_ID'] = '636'
+# # os.environ['SSH_CLIENT'] = '2a01:cb10:41e:d200:a18f:cbd2:4f01:c45e 39910 22'
+# os.environ['OLDPWD'] = '/work/ltortero/CMSSW_10_2_22/src'
+# # os.environ['SSH_TTY'] = '/dev/pts/19'
+# os.environ['LD_LIBRARY_PATH'] = '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib64:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib:/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/lib:/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/lib64:/cvmfs/sft.cern.ch/lcg/releases/binutils/2.30-e5b21/x86_64-centos7/lib:/work/ltortero/CMSSW_10_2_22/biglib/slc7_amd64_gcc700:/work/ltortero/CMSSW_10_2_22/lib/slc7_amd64_gcc700:/work/ltortero/CMSSW_10_2_22/external/slc7_amd64_gcc700/lib:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/biglib/slc7_amd64_gcc700:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/lib/slc7_amd64_gcc700:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/external/slc7_amd64_gcc700/lib:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/llvm/6.0.0-ogkkac/lib64:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gcc/7.0.0-omkpbe2/lib64:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gcc/7.0.0-omkpbe2/lib:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/cuda/9.2.148/drivers'
+# os.environ['PATH'] = '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//scripts:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//bin:/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin:/cvmfs/sft.cern.ch/lcg/releases/binutils/2.30-e5b21/x86_64-centos7/bin:/cvmfs/cms.cern.ch/share/overrides/bin:/work/ltortero/CMSSW_10_2_22/bin/slc7_amd64_gcc700:/work/ltortero/CMSSW_10_2_22/external/slc7_amd64_gcc700/bin:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/bin/slc7_amd64_gcc700:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/external/slc7_amd64_gcc700/bin:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/llvm/6.0.0-ogkkac/bin:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gcc/7.0.0-omkpbe2/bin:/cvmfs/cms.cern.ch/common:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/work/ltortero/CMSSW_10_2_22/src/grid-control'
+# os.environ['PYTHONPATH'] = '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//python:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib/python3.7/site-packages:/home/ltortero/python/:'
+
+# if '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt/scripts' not in sys.path:
+#     os.system("source /cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt/setup.sh")
+sys.path = ['{}/.local/lib/python3.7/site-packages/'.format(os.environ["HOME"])] + ["/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//python", "/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib", "/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib/python3.7/site-packages"] + sys.path # + ["/cvmfs/sft.cern.ch/lcg/views/LCG_96bpython3/x86_64-ubuntu1804-gcc8-opt/lib/python3.6/site-packages"]
+
+# for p in sys.path:
+#     print(p)
 
 """
     Example:
@@ -26,9 +47,8 @@ from keras.models import model_from_json
 from xgboost import XGBRegressor
 import uproot
 import pandas
-from ROOT import TFile, TDirectoryFile, TTree
 import array
-
+from ROOT import TFile, TDirectoryFile, TTree
 logger = logging.getLogger()
 
 def setup_logging(output_file, level=logging.DEBUG):
@@ -193,9 +213,9 @@ def main(args):
         # "recoil_phi",
         "met",
         "metphi",
-        "metcov00",
-        "metcov01",
-        "metcov11",
+        # "metcov00",
+        # "metcov01",
+        # "metcov11",
         # "MET_significance",
         "mT1",
         "mT2",
