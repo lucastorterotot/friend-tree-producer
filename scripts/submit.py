@@ -101,7 +101,8 @@ def get_entries(*args):
         )
 
     F = uproot.open(f)
-    pipelines = [x.strip(";1") for x in F.keys() ]
+    pipelines = [x.strip(b";1") for x in F.keys() ]
+    pipelines = [p.decode("utf-8") for p in pipelines]
     if len(restrict_to_channels_file) > 0 or len(restrict_to_channels) > 0:
         pipelines = [
             p for p in pipelines if p.split("_")[0] in restrict_to_channels_file
@@ -193,7 +194,7 @@ def prepare_jobs(
     sorted_nicks = ntuple_database.keys()
     sorted_nicks.sort()
     for nick in sorted_nicks:
-        sorted_pipelines = ntuple_database[nick]["pipelines"].keys()
+        sorted_pipelines = list(ntuple_database[nick]["pipelines"].keys())
         sorted_pipelines.sort()
         for p in sorted_pipelines:
             n_entries = ntuple_database[nick]["pipelines"][p]
