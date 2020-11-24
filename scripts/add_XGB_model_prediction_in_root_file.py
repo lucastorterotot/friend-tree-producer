@@ -239,20 +239,33 @@ def main(args):
                 else:
                     already_rootdir = True
                 rootdir.cd()
-                if args.recreate:
-                    if already_rootdir:
+                tree_old = False
+                if already_rootdir:
+                    if args.recreate:
                         rootdir.Remove(rootdir.Get(args.tree))
-                    tree = TTree(args.tree, args.tree)
-                elif already_rootdir:
-                    tree = rootdir.Get(args.tree)
-                else:
-                    tree = TTree(args.tree, args.tree)
+                    else:
+                        tree_old = rootdir.Get(args.tree)
+                tree = TTree(args.tree, args.tree)
+
+                old_models = []
+                if tree_old:
+                    old_models = [
+                        model.GetName() for model in [tree_old.GetListOfLeaves()][0]
+                    ]
+                old_models = [model for model in old_models if not model.lstrip("predictions_") in models.keys()]
+                if len(old_models) > 0:
+                    root_file_out_old = uproot.open(root_file_output)
+
                 leafValues = {}
+                for model in old_models:
+                    leafValues[model] = array.array("f", [0])
                 for model in models:
                     leafValues[model] = array.array("f", [0])
 
             if args.pandas:
                 df = root_file_in[rootdirname][args.tree].pandas.df()
+                if tree_old:
+                    df_old = root_file_out_old[rootdirname][args.tree].pandas.df()
             else:
                 _df = root_file_in[rootdirname][args.tree].arrays()
                 df = pandas.DataFrame()
@@ -261,6 +274,12 @@ def main(args):
                     keys_to_export.remove(key)
                 for k in keys_to_export:
                     df[k] = _df[str.encode(k)]
+                if tree_old:
+                    _df_old = root_file_out_old[rootdirname][args.tree].arrays()
+                    df_old = pandas.DataFrame()
+                    keys_to_export = old_models
+                    for k in keys_to_export:
+                        df_old[k] = _df_old[str.encode(k)]
 
             df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
             for leg in [1,2]:
@@ -272,15 +291,24 @@ def main(args):
 
             if not args.dry:
                 print("Filling new branch in tree...")
+                for model in old_models:
+                    newBranch = tree.Branch(
+                        model,
+                        leafValues[model],
+                        model+"/F"
+                    )
                 for model in models:
                     newBranch = tree.Branch(
                         "predictions_{}".format(model),
                         leafValues[model],
                         "predictions_{}/F".format(model)
                     )
-                    for k in range(len(df["predictions_{}".format(model)].values)):
+                for k in range(len(df["predictions_{}".format(model)].values)):
+                    for model in models:
                         leafValues[model][0] = df["predictions_{}".format(model)].values[k]
-                        newBranch.Fill()
+                    for model in old_models:
+                        leafValues[model][0] = df_old[model].values[k]
+                    tree.Fill()
                 print("Filled.")
 
                 tree.Write()
