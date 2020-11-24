@@ -232,11 +232,14 @@ def main(args):
                 else:
                     already_rootdir = True
                 rootdir.cd()
-                if args.recreate and already_rootdir:
-                    rootdir.Remove(rootdir.Get(args.tree))
+                if args.recreate:
+                    if already_rootdir:
+                        rootdir.Remove(rootdir.Get(args.tree))
                     tree = TTree(args.tree, args.tree)
-                else:
+                elif already_rootdir:
                     tree = rootdir.Get(args.tree)
+                else:
+                    tree = TTree(args.tree, args.tree)
                 leafValues = {}
                 for model in models:
                     leafValues[model] = array.array("f", [0])
