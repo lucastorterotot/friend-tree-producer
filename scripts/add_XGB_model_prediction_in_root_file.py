@@ -21,9 +21,9 @@ import numpy as np
 
 sys.path = [
     '{}/.local/lib/python3.7/site-packages/'.format(os.environ["HOME"]),
+    '/home/ltortero/.local/lib/python3.7/site-packages/',
 ] + sys.path
 from xgboost import XGBRegressor
-
 import uproot
 import pandas
 import array
@@ -38,6 +38,13 @@ except:
     from ROOT import TFile, TDirectoryFile, TTree
 
 logger = logging.getLogger()
+
+os.environ['PYTHONPATH'] = '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt/lib/python3.7/site-package:' + os.environ['PYTHONPATH']
+
+sys.path = [
+    '/cvmfs/sft.cern.ch/lcg/views/LCG_96bpython3/x86_64-ubuntu1804-gcc8-opt/lib',
+    '/cvmfs/sft.cern.ch/lcg/views/LCG_96bpython3/x86_64-ubuntu1804-gcc8-opt/lib/python3.6/site-packages',
+] + sys.path
 
 def setup_logging(output_file, level=logging.DEBUG):
     logger.setLevel(level)
