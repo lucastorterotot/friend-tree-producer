@@ -297,6 +297,9 @@ def main(args):
                     tree.Fill()
                 print("Filled.")
 
+                if tree_old:
+                    rootdir.Remove(rootdir.Get(args.tree))
+
                 tree.Write()
                 root_file_out.Close()
 
