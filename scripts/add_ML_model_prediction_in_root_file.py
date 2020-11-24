@@ -1,35 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# installation:
-# source /cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt/setup.sh
-# pip install --user xgboost==1.0.2
-# pip install --user keras==2.3.1
-
-import sys, os
-
-# os.environ['LCG_VERSION'] = '98python3'
-# os.environ['CXX'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin/g++'
-# os.environ['FC'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin/gfortran'
-# os.environ['COMPILER_PATH'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7'
-# os.environ['CC'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin/gcc'
-# 
-# os.environ['MANPATH'] = '/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/share/man:/cvmfs/sft.cern.ch/lcg/releases/binutils/2.30-e5b21/x86_64-centos7/share/man:/cvmfs/cms.cern.ch/share/man:'
-# os.environ['XDG_SESSION_ID'] = '636'
-# # os.environ['SSH_CLIENT'] = '2a01:cb10:41e:d200:a18f:cbd2:4f01:c45e 39910 22'
-# os.environ['OLDPWD'] = '/work/ltortero/CMSSW_10_2_22/src'
-# # os.environ['SSH_TTY'] = '/dev/pts/19'
-# os.environ['LD_LIBRARY_PATH'] = '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib64:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib:/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/lib:/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/lib64:/cvmfs/sft.cern.ch/lcg/releases/binutils/2.30-e5b21/x86_64-centos7/lib:/work/ltortero/CMSSW_10_2_22/biglib/slc7_amd64_gcc700:/work/ltortero/CMSSW_10_2_22/lib/slc7_amd64_gcc700:/work/ltortero/CMSSW_10_2_22/external/slc7_amd64_gcc700/lib:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/biglib/slc7_amd64_gcc700:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/lib/slc7_amd64_gcc700:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/external/slc7_amd64_gcc700/lib:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/llvm/6.0.0-ogkkac/lib64:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gcc/7.0.0-omkpbe2/lib64:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gcc/7.0.0-omkpbe2/lib:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/cuda/9.2.148/drivers'
-# os.environ['PATH'] = '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//scripts:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//bin:/cvmfs/sft.cern.ch/lcg/releases/gcc/9.2.0-afc57/x86_64-centos7/bin:/cvmfs/sft.cern.ch/lcg/releases/binutils/2.30-e5b21/x86_64-centos7/bin:/cvmfs/cms.cern.ch/share/overrides/bin:/work/ltortero/CMSSW_10_2_22/bin/slc7_amd64_gcc700:/work/ltortero/CMSSW_10_2_22/external/slc7_amd64_gcc700/bin:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/bin/slc7_amd64_gcc700:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_22/external/slc7_amd64_gcc700/bin:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/llvm/6.0.0-ogkkac/bin:/cvmfs/cms.cern.ch/slc7_amd64_gcc700/external/gcc/7.0.0-omkpbe2/bin:/cvmfs/cms.cern.ch/common:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/work/ltortero/CMSSW_10_2_22/src/grid-control'
-# os.environ['PYTHONPATH'] = '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//python:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib:/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib/python3.7/site-packages:/home/ltortero/python/:'
-
-# if '/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt/scripts' not in sys.path:
-#     os.system("source /cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt/setup.sh")
-sys.path = ['{}/.local/lib/python3.7/site-packages/'.format(os.environ["HOME"])] + ["/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//python", "/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib", "/cvmfs/sft.cern.ch/lcg/views/LCG_98python3/x86_64-centos7-gcc9-opt//lib/python3.7/site-packages"] + sys.path # + ["/cvmfs/sft.cern.ch/lcg/views/LCG_96bpython3/x86_64-ubuntu1804-gcc8-opt/lib/python3.6/site-packages"]
-
-# for p in sys.path:
-#     print(p)
-
 """
     Example:
         python HiggsAnalysis/friend-tree-producer/scripts/add_ML_models_prediction_in_root_file.py \
@@ -40,15 +11,9 @@ sys.path = ['{}/.local/lib/python3.7/site-packages/'.format(os.environ["HOME"])]
             --dry
 """
 
-import numpy as np
+import os
 import argparse
 import logging
-from keras.models import model_from_json
-from xgboost import XGBRegressor
-import uproot
-import pandas
-import array
-from ROOT import TFile, TDirectoryFile, TTree
 logger = logging.getLogger()
 
 def setup_logging(output_file, level=logging.DEBUG):
@@ -132,192 +97,45 @@ def parse_arguments():
 
     return parser.parse_args()
 
-class DNN_model_from_json(object):
-    
-    def __init__(self, json_file):
-        self.name = "DNN_" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
-        
-        # load json and create model
-        NN_weights_path_and_file = json_file.split('/')
-        NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
-        NN_weights_file = "/".join(NN_weights_path_and_file)
-        
-        json_file_ = open(json_file, 'r')
-        loaded_model_json = json_file_.read()
-        json_file_.close()
-        loaded_model = model_from_json(loaded_model_json)
-    
-        # load weights into new model
-        loaded_model.load_weights(NN_weights_file)
-        print("Loaded DNN model from disk:")
-        print("\t{}".format(json_file))
-
-        self.model = loaded_model
-            
-    def predict(self, filtered_df):
-        return self.model.predict(filtered_df)
-
-class XGB_model_from_json(object):
-    
-    def __init__(self, json_file):
-        self.name = "XGB_" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
-        
-        # load json and create model
-        loaded_model = XGBRegressor()
-        loaded_model.load_model(json_file)
-    
-        print("Loaded XGBRegressor model from disk:")
-        print("\t{}".format(json_file))
-
-        self.model = loaded_model
-            
-    def predict(self, filtered_df):
-        return self.model.predict(np.r_[filtered_df])
-
 def main(args):
     print(args)
 
-    channels = args.channels.split(',')
-    categories = args.categories.split(',')
-
-    nickname = os.path.basename(args.input).replace(".root", "")
-
     DNN_jsons = args.DNNs.split(',')
-    DNN_jsons = [f for f in DNN_jsons if f != ""]
-    XGB_jsons = args.XGBs.split(',')
-    XGB_jsons = [f for f in XGB_jsons if f != ""]
-
-    models = {}
-    for DNN_json in DNN_jsons:
-        DNN_object = DNN_model_from_json(DNN_json)
-        models[DNN_object.name] = DNN_object
-    for XGB_json in XGB_jsons:
-        XGB_object = XGB_model_from_json(XGB_json)
-        models[XGB_object.name] = XGB_object
-    
-    inputs = [
-        "pt_1",
-        "eta_1",
-        "phi_1",
-        "pt_2",
-        "eta_2",
-        "phi_2",
-        # "jpt_1",
-        # "jeta_1",
-        # "jphi_1",
-        # "jpt_2",
-        # "jeta_2",
-        # "jphi_2",
-        # "recoil_pt",
-        # "recoil_eta",
-        # "recoil_phi",
-        "met",
-        "metphi",
-        # "metcov00",
-        # "metcov01",
-        # "metcov11",
-        # "MET_significance",
-        "mT1",
-        "mT2",
-        "mTtt",
-        "mTtot",
-    ]
-
-    # load root file and create friend tree
-    root_file_input = args.input
-    output_path = os.path.join(args.output_dir, nickname)
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-    root_file_output = os.path.join(
-        output_path,
-        "_".join(
-            filter(
-                None,
-                [
-                    nickname,
-                    args.pipeline,
-                    str(args.first_entry),
-                    str(args.last_entry),
-                ],
-            )
-        )
-        + ".root",
-    )
-
-    root_file_in = uproot.open(root_file_input)
-
-    if 'all' in channels:
-        channels = set([k.split('_')[0] for k in root_file_in.keys() if 'nominal' in k])
-    if 'all' in categories:
-        categories = set([k.split('_')[-1] for k in root_file_in.keys() if any([c in k for c in channels])])
-
-    if not args.dry:
-        if args.recreate:
-            root_file_out = TFile(root_file_output, 'recreate')
-        else:
-            root_file_out = TFile(root_file_output, 'update')
-        print("Opened new file")
-    first_pass = True
-
-    for channel in channels:
-        for cat in categories:
-            print('process pipeline: %s_%s' % (channel, cat))
-
-            if not first_pass and not args.dry:
-                root_file_out = TFile(root_file_output, 'update')
-            first_pass = False
-
-            rootdirname = '{}_{}'.format(channel, cat)
-            if not args.dry:
-                rootdir = root_file_out.GetDirectory(rootdirname)
-                if not rootdir:
-                    already_rootdir = False
-                    rootdir = TDirectoryFile(rootdirname, rootdirname)
-                else:
-                    already_rootdir = True
-                rootdir.cd()
-                if not args.recreate and already_rootdir:
-                    rootdir.Remove(rootdir.Get(args.tree))
-                tree = TTree(args.tree, args.tree)
-                leafValues = {}
-                for model in models:
-                    leafValues[model] = array.array("f", [0])
-
-            if args.pandas:
-                df = root_file_in[rootdirname][args.tree].pandas.df()
-            else:
-                _df = root_file_in[rootdirname][args.tree].arrays()
-                df = pandas.DataFrame()
-                keys_to_export = set(inputs+["pt_1", "pt_2", "phi_1", "phi_2", "met", "metphi"])
-                for key in ["mTtt", "mT1", "mT2", "mTtot"]:
-                    keys_to_export.remove(key)
-                for k in keys_to_export:
-                    df[k] = _df[str.encode(k)]
-
-            df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
-            for leg in [1,2]:
-                df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
-            df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
-    
-            for model in models:
-                df["predictions_{}".format(model)] = models[model].predict(df[inputs])
-
-            if not args.dry:
-                print("Filling new branch in tree...")
-                for model in models:
-                    newBranch = tree.Branch(
-                        "predictions_{}".format(model),
-                        leafValues[model],
-                        "predictions_{}/F".format(model)
-                    )
-                for k in range(len(df["predictions_{}".format(model)].values)):
-                    for model in models:
-                        leafValues[model][0] = df["predictions_{}".format(model)].values[k]
-                    tree.Fill()
-                print("Filled.")
-
-                tree.Write()
-                root_file_out.Close()
+    if len(DNN_jsons) > 0:
+        command = "add_DNN_model_prediction_in_root_file.py"
+        command += " --input={}".format(args.input)
+        command += " --DNNs={}".format(args.DNNs)
+        command += " --tree={}".format(args.tree)
+        command += " --channels={}".format(args.channels)
+        command += " --categories={}".format(args.categories)
+        if args.enable_logging:
+            command += " --enable-logging"
+        if args.first_entry != 0:
+            command += " --first_entry={}".format(args.first_entry)
+        if args.last_entry != -1:
+            command += " --last_entry={}".format(args.last_entry)
+        if args.pipeline != None:
+            command += " --pipeline={}".format(args.pipeline)
+        command += " --output-dir={}".format(args.output_dir)
+        os.system(command)
+    XGB_jsons = args.XGBs.split(',')    
+    if len(XGB_jsons) > 0:
+        command = "add_XGB_model_prediction_in_root_file.py"
+        command += " --input={}".format(args.input)
+        command += " --XGBs={}".format(args.XGBs)
+        command += " --tree={}".format(args.tree)
+        command += " --channels={}".format(args.channels)
+        command += " --categories={}".format(args.categories)
+        if args.enable_logging:
+            command += " --enable-logging"
+        if args.first_entry != 0:
+            command += " --first_entry={}".format(args.first_entry)
+        if args.last_entry != -1:
+            command += " --last_entry={}".format(args.last_entry)
+        if args.pipeline != None:
+            command += " --pipeline={}".format(args.pipeline)
+        command += " --output-dir={}".format(args.output_dir)
+        os.system(command)
 
 if __name__ == "__main__":
     args = parse_arguments()
