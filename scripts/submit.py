@@ -116,7 +116,7 @@ def get_entries(*args):
             import sys
 
             with s_print_lock:
-                print "Unexpected error:", sys.exc_info()[0]
+                print("Unexpected error:", sys.exc_info()[0])
                 logger.critical("problem in file: %s pipeline: %s" % (f, p))
             raise
     del F
@@ -272,7 +272,7 @@ def prepare_jobs(
                         )
                     )
             else:
-                print "Warning: %s has no entries in pipeline %s" % (nick, p)
+                print("Warning: %s has no entries in pipeline %s" % (nick, p))
     logger.debug(str("Done creating the job_database"))
     for j in job_database.keys():
         logger.debug("Job {}:".format(j))
@@ -410,7 +410,7 @@ def prepare_jobs(
                 NJOBS=job_number,
             )
         else:
-            print "Warning: Please set walltimes greater than 24 hours manually in gc config."
+            print("Warning: Please set walltimes greater than 24 hours manually in gc config.")
             gc_content = gc_template.format(
                 STORAGE_DIR=gc_storage_dir,
                 EXTRA_SE_INFO=extra_se_info,
@@ -420,7 +420,7 @@ def prepare_jobs(
                 NJOBS=job_number,
             )
     else:
-        print "Warning: walltime for %s cluster not set. Setting it to 1h." % batch_cluster
+        print("Warning: walltime for %s cluster not set. Setting it to 1h." % batch_cluster)
         gc_content = gc_template.format(
             STORAGE_DIR=gc_storage_dir,
             EXTRA_SE_INFO=extra_se_info,
@@ -464,7 +464,7 @@ def prepare_jobs(
                     WALLTIME=str(walltime),
                 )
             else:
-                print "Warning: walltime for %s cluster not set. Setting it to 1h." % batch_cluster
+                print("Warning: walltime for %s cluster not set. Setting it to 1h." % batch_cluster)
                 condorjdl_content = condorjdl_template.format(
                     TASKDIR=workdir_path+"/gc_workdir",
                     TASKNUMBER=str(index),
@@ -487,14 +487,14 @@ def prepare_jobs(
                 TASKDIR=os.path.abspath(workdir_path), CONDORJDL=os.path.abspath(condorjdl_path)
             )
         )
-    print
-    print "To run the condor submission, execute the following:"
-    print
-    print "\n".join(printout_list)
-    print
-    print "Or with grid-control:"
-    print "go.py {} -Gc".format(gc_path)
-    print
+    print("")
+    print("To run the condor submission, execute the following:")
+    print("")
+    print("\n".join(printout_list))
+    print("")
+    print("Or with grid-control:")
+    print("go.py {} -Gc".format(gc_path))
+    print("")
     with open(jobdb_path, "w") as db:
         db.write(json.dumps(job_database_copy, sort_keys=True, indent=2))
         db.close()

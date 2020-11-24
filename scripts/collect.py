@@ -13,7 +13,7 @@ def write_trees_to_files(info):
     nick = info[0]
     collection_path = info[1]
     db = info[2]
-    print "Copying trees for %s" % nick
+    print("Copying trees for %s" % nick)
     nick_path = os.path.join(collection_path, nick)
     if not os.path.exists(nick_path):
         os.mkdir(nick_path)
@@ -45,7 +45,7 @@ def collect_outputs(executable, cores, custom_workdir_path, mode):
     collection_path = os.path.join(workdir_path, executable.replace('.py', '') + "_collected")
     if not os.path.exists(collection_path):
         os.makedirs(collection_path)
-    # print jobdb
+    # print(jobdb)
     for jobnumber in sorted([int(k) for k in jobdb.keys()]):
         for subjobnumber in range(len(jobdb[str(jobnumber)])):
             nick = (

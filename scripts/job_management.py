@@ -51,11 +51,11 @@ def main():
     if args.mode == "xrootd":
 
         if args.executable != "SVFit":
-            print "Remote access currently only works for SVFit computation."
+            print("Remote access currently only works for SVFit computation.")
             exit()
 
         if args.input_server not in ["GridKA", "RWTH"]:
-            print "Remote access currently only works for input files on Gridka and RWTH."
+            print("Remote access currently only works for input files on Gridka and RWTH.")
             exit()
 
     if args.command == "submit":
@@ -171,7 +171,7 @@ def main():
             )
 
             if args.mode == "xrootd":
-                print "condor_{}_forGC.sh".format(args.executable)
+                print("condor_{}_forGC.sh".format(args.executable))
                 shellscript = os.path.join(
                     os.environ["CMSSW_BASE"],
                     "src",

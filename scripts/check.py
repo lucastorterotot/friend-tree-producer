@@ -14,11 +14,11 @@ r.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 def check_output_files(f, mode, t, n):
     valid_file = True
     if os.environ["USER"] == "mscham":
-        print "Checking: ", f
+        print("Checking: ", f)
     if mode == "local":
         if not os.path.exists(f):
             valid_file = False
-            print "File not there:", f
+            print("File not there:", f)
         else:
             F = r.TFile.Open(f, "read")
             if F:
@@ -27,24 +27,24 @@ def check_output_files(f, mode, t, n):
                 valid_file = False
             if not valid_file:
                 F.Close()
-                print "File is corrupt: ", f
+                print("File is corrupt: ", f)
                 os.remove(f)
             else:
                 input_tree = F.Get(str(t))
                 if not input_tree:
-                    print "Tree not found:", f, t
+                    print("Tree not found:", f, t)
                     valid_file = False
                 else:
                     n_tr = input_tree.GetEntries()
                     if n_tr != n:
                         valid_file = False
-                        print "WRONG number of events:", f, t, n_tr, "!=", n
+                        print("WRONG number of events:", f, t, n_tr, "!=", n)
                 F.Close()
     elif mode == "xrootd":
         myclient = client.FileSystem(server_xrootd["GridKA"])
         status, info = myclient.stat(f)
         if not info:
-            print "File not there:", f
+            print("File not there:", f)
             valid_file = False
     return valid_file
 
@@ -128,7 +128,7 @@ def check_and_resubmit(executable, custom_workdir_path, mode, check_all, cores):
     if cores > 1:
         logger.debug("starting pool.map")
 
-        # print zip(shared_filepath, [mode] * len(shared_filepath), shared_tree_name, shared_n)[0]
+        # print(zip(shared_filepath, [mode] * len(shared_filepath), shared_tree_name, shared_n)[0])
         x = pool.map(
             check_output_files_wrap,
             itertools.izip(
@@ -141,9 +141,9 @@ def check_and_resubmit(executable, custom_workdir_path, mode, check_all, cores):
                 # if not check_output_files(filepath, mode, '/'.join([pipeline, tree]), n):
                 job_to_resubmit.add(shared_jobnumber[i])
                 resubmit_jobid.append(shared_jobnumber[i])
-                print "resubmit:", shared_jobnumber[i], shared_subjobnumber[
+                print("resubmit:", shared_jobnumber[i], shared_subjobnumber[
                     i
-                ], shared_filepath[i]
+                ], shared_filepath[i])
             else:
                 jobdb[str(shared_jobnumber[i])][shared_subjobnumber[i]][
                     "status"
@@ -179,12 +179,12 @@ def check_and_resubmit(executable, custom_workdir_path, mode, check_all, cores):
 
     # Final screen message
     if len(job_to_resubmit) > 0:
-        print
-        print "To run the resubmission, check {} first".format(condor_jdl_resubmit_path)
-        print "Command:"
-        print "condor_submit {CONDORJDL}".format(
+        print("")
+        print("To run the resubmission, check {} first".format(condor_jdl_resubmit_path))
+        print("Command:")
+        print("condor_submit {CONDORJDL}".format(
             TASKDIR=os.path.abspath(workdir_path), CONDORJDL=os.path.abspath(condor_jdl_resubmit_file)
-        )
-        print
+        ))
+        print("")
     else:
-        print "\nNothing to resubmit.\n"
+        print("\nNothing to resubmit.\n")
