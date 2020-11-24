@@ -100,9 +100,11 @@ def parse_arguments():
 def main(args):
     print(args)
 
+    command = "echo 1"
+
     DNN_jsons = args.DNNs.split(',')
     if len(DNN_jsons) > 0:
-        command = "add_DNN_model_prediction_in_root_file.py"
+        command += " ; add_DNN_model_prediction_in_root_file.py"
         command += " --input={}".format(args.input)
         command += " --DNNs={}".format(args.DNNs)
         command += " --tree={}".format(args.tree)
@@ -117,10 +119,9 @@ def main(args):
         if args.pipeline != None:
             command += " --pipeline={}".format(args.pipeline)
         command += " --output-dir={}".format(args.output_dir)
-        os.system(command)
     XGB_jsons = args.XGBs.split(',')    
     if len(XGB_jsons) > 0:
-        command = "add_XGB_model_prediction_in_root_file.py"
+        command += " ; add_XGB_model_prediction_in_root_file.py"
         command += " --input={}".format(args.input)
         command += " --XGBs={}".format(args.XGBs)
         command += " --tree={}".format(args.tree)
@@ -135,7 +136,8 @@ def main(args):
         if args.pipeline != None:
             command += " --pipeline={}".format(args.pipeline)
         command += " --output-dir={}".format(args.output_dir)
-        os.system(command)
+
+    os.system(command)
 
 if __name__ == "__main__":
     args = parse_arguments()
