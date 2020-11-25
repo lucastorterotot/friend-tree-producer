@@ -20,6 +20,7 @@ from keras.models import model_from_json
 import uproot
 import pandas
 from ROOT import TFile, TDirectoryFile, TTree
+from ROOT.TObject import kOverwrite
 import array
 
 logger = logging.getLogger()
@@ -201,10 +202,11 @@ def main(args):
         categories = set([k.split('_')[-1] for k in root_file_in.keys() if any([c in k for c in channels])])
 
     if not args.dry:
-        if args.recreate:
-            root_file_out = TFile(root_file_output, 'recreate')
-        else:
-            root_file_out = TFile(root_file_output, 'update')
+        root_file_old = None
+        if not args.recreate:
+            os.system("mv {} {}_to_update".format(root_file_output, root_file_output))
+            root_file_old = TFile("{}_to_update".format(root_file_output), 'read')
+        root_file_out = TFile(root_file_output, 'recreate')
         print("Opened new file")
     first_pass = True
 
@@ -218,29 +220,29 @@ def main(args):
 
             rootdirname = '{}_{}'.format(channel, cat)
             if not args.dry:
-                rootdir = root_file_out.GetDirectory(rootdirname)
-                if not rootdir:
+                rootdir_old = False
+                if root_file_old:
+                    rootdir_old = root_file_old.GetDirectory(rootdirname)
+                if not rootdir_old:
                     already_rootdir = False
-                    rootdir = TDirectoryFile(rootdirname, rootdirname)
                 else:
                     already_rootdir = True
+                rootdir = TDirectoryFile(rootdirname, rootdirname)
                 rootdir.cd()
                 tree_old = False
                 if already_rootdir:
-                    if args.recreate:
-                        rootdir.Remove(rootdir.Get(args.tree))
-                    else:
-                        tree_old = rootdir.Get(args.tree)
+                    if not args.recreate:
+                        tree_old = rootdir_old.Get(args.tree)
                 tree = TTree(args.tree, args.tree)
 
                 old_models = []
                 if tree_old:
                     old_models = [
-                        model.GetName() for model in [tree_old.GetListOfLeaves()][0]
+                        model.GetName() for model in [tree_old.GetListOfBranches()][0]
                     ]
-                old_models = [model for model in old_models if not model.lstrip("predictions_") in models.keys()]
+                old_models = [model for model in old_models if not model in models.keys()]
                 if len(old_models) > 0:
-                    root_file_out_old = uproot.open(root_file_output)
+                    root_file_out_old = uproot.open("{}_to_update".format(root_file_output))
 
                 leafValues = {}
                 for model in old_models:
@@ -273,7 +275,7 @@ def main(args):
             df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
     
             for model in models:
-                df["predictions_{}".format(model)] = models[model].predict(df[inputs])
+                df[model] = models[model].predict(df[inputs])
 
             if not args.dry:
                 print("Filling new branch in tree...")
@@ -281,27 +283,27 @@ def main(args):
                     newBranch = tree.Branch(
                         model,
                         leafValues[model],
-                        model+"/F"
+                        "prediction/F"
                     )
                 for model in models:
                     newBranch = tree.Branch(
-                        "predictions_{}".format(model),
+                        model,
                         leafValues[model],
-                        "predictions_{}/F".format(model)
+                        "prediction/F"
                     )
-                for k in range(len(df["predictions_{}".format(model)].values)):
+                for k in range(len(df[model].values)):
                     for model in models:
-                        leafValues[model][0] = df["predictions_{}".format(model)].values[k]
+                        leafValues[model][0] = df[model].values[k]
                     for model in old_models:
                         leafValues[model][0] = df_old[model].values[k]
                     tree.Fill()
                 print("Filled.")
+                
+                rootdir.Remove(rootdir.Get(args.tree))
 
-                if tree_old:
-                    rootdir.Remove(rootdir.Get(args.tree))
-
-                tree.Write()
+                tree.Write(args.tree, kOverwrite)
                 root_file_out.Close()
+                os.system("rm -rf {}_to_update".format(root_file_output))
 
 if __name__ == "__main__":
     args = parse_arguments()
