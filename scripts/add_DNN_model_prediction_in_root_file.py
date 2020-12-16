@@ -104,6 +104,50 @@ def parse_arguments():
 
     return parser.parse_args()
 
+var_names_at_KIT = {
+    "tau1_pt_reco" : "pt_1",
+    "tau1_eta_reco" : "eta_1",
+    "tau1_phi_reco" : "phi_1",
+    "tau2_pt_reco" : "pt_2",
+    "tau2_eta_reco" : "eta_2",
+    "tau2_phi_reco" : "phi_2",
+    "jet1_pt_reco" : "jpt_1",
+    "jet1_eta_reco" : "jeta_1",
+    "jet1_phi_reco" : "jphi_1",
+    "jet2_pt_reco" : "jpt_2",
+    "jet2_eta_reco" : "jeta_2",
+    "jet2_phi_reco" : "jphi_2",
+    "remaining_jets_pt_reco" : "jpt_r",
+    "remaining_jets_eta_reco" : "jeta_r",
+    "remaining_jets_phi_reco" : "jphi_r",
+    "remaining_jets_N_reco" : "Njet_r",
+    "MET_pt_reco" : "met",
+    "MET_phi_reco" : "metphi",
+    "MET_covXX_reco" : "metcov00",
+    "MET_covXY_reco" : "metcov01",
+    "MET_covYY_reco" : "metcov11",
+    "mT1_reco" : "mt_1",
+    "mT2_reco" : "mt_2",
+    "mTtt_reco" : "mt_tt",
+    "mTtot_reco" : "mt_tot",
+    "PuppiMET_pt_reco" : "puppimet",
+    "PuppiMET_phi_reco" : "puppimetphi",
+    "PuppimT1_reco" : "mt_1_puppi",
+    "PuppimT2_reco" : "mt_2_puppi",
+    "PuppimTtt_reco" : "mt_tt",
+    "PuppimTtot_reco" : "mt_tot_puppi",
+    "PU_npvsGood_reco" : "npv",
+}
+
+N_neutrinos_in_channel = {
+    "tt" : 2,
+    "mt" : 3,
+    "et" : 3,
+    "mm" : 4,
+    "em" : 4,
+    "ee" : 4,
+}
+
 class DNN_model_from_json(object):
     
     def __init__(self, json_file):
@@ -125,9 +169,17 @@ class DNN_model_from_json(object):
         print("\t{}".format(json_file))
 
         self.model = loaded_model
+
+        # load list of inputs for the model
+        sys.path.insert(0, json_file.rstrip(json_file.split('/')[-1]))
+        import inputs_for_models_in_this_dir
+        reload(inputs_for_models_in_this_dir) # avoid being stuck with previous versions
+        this_model_inputs = inputs_for_models_in_this_dir.inputs
+        this_model_inputs = [i if i not in var_names_at_KIT.keys() else var_names_at_KIT[i] for i in this_model_inputs]
+        self.inputs = this_model_inputs
             
     def predict(self, filtered_df):
-        return self.model.predict(filtered_df)
+        return self.model.predict(filtered_df[self.inputs])
 
 def main(args):
     print(args)
@@ -141,37 +193,11 @@ def main(args):
     DNN_jsons = [f for f in DNN_jsons if f != ""]
 
     models = {}
+    inputs = []
     for DNN_json in DNN_jsons:
         DNN_object = DNN_model_from_json(DNN_json)
         models[DNN_object.name] = DNN_object
-    
-    inputs = [
-        "pt_1",
-        "eta_1",
-        "phi_1",
-        "pt_2",
-        "eta_2",
-        "phi_2",
-        # "jpt_1",
-        # "jeta_1",
-        # "jphi_1",
-        # "jpt_2",
-        # "jeta_2",
-        # "jphi_2",
-        # "recoil_pt",
-        # "recoil_eta",
-        # "recoil_phi",
-        "met",
-        "metphi",
-        # "metcov00",
-        # "metcov01",
-        # "metcov11",
-        # "MET_significance",
-        "mT1",
-        "mT2",
-        "mTtt",
-        "mTtot",
-    ]
+        inputs += DNN_object.inputs
 
     # load root file and create friend tree
     root_file_input = args.input
@@ -257,9 +283,10 @@ def main(args):
             else:
                 _df = root_file_in[rootdirname][args.tree].arrays()
                 df = pandas.DataFrame()
-                keys_to_export = set(inputs+["pt_1", "pt_2", "phi_1", "phi_2", "met", "metphi"])
-                for key in ["mTtt", "mT1", "mT2", "mTtot"]:
-                    keys_to_export.remove(key)
+                keys_to_export = set(inputs+["pt_1", "pt_2", "phi_1", "phi_2"])
+                for key in ["N_neutrinos_reco", "mt_tt"]:
+                    if key in keys_to_export:
+                        keys_to_export.remove(key)
                 for k in keys_to_export:
                     df[k] = _df[str.encode(k)]
                 if tree_old:
@@ -269,13 +296,12 @@ def main(args):
                     for k in keys_to_export:
                         df_old[k] = _df_old[str.encode(k)]
 
-            df["mTtt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
-            for leg in [1,2]:
-                df["mT{}".format(leg)] = (2*df["pt_{}".format(leg)]*df["met"]*(1-np.cos(df["phi_{}".format(leg)]-df["metphi"])))**.5
-            df["mTtot"] = (df["mT1"]**2+df["mT2"]**2+df["mTtt"]**2)**.5
+            df["mt_tt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
+
+            df["N_neutrinos_reco"] = N_neutrinos_in_channel[channel] * np.ones(len(df[inputs[0]]), dtype='int')
     
             for model in models:
-                df[model] = models[model].predict(df[inputs])
+                df[model] = models[model].predict(df)
 
             if not args.dry:
                 print("Filling new branch in tree...")
