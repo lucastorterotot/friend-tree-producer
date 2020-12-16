@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
     if args.enable_logging:
         setup_logging(
-            "add_DNN_model_prediction_in_root_file_%s_%s_%s_%s.log"
+            "add_XGB_model_prediction_in_root_file_%s_%s_%s_%s.log"
             % (
                 os.path.basename(args.input).replace(".root", ""),
                 args.folder,
