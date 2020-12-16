@@ -270,17 +270,15 @@ def main(args):
 
                 old_models = []
                 if tree_old:
-                    old_models = [
-                        model.GetName() for model in [tree_old.GetListOfBranches()][0]
-                    ]
-                old_models = [model for model in old_models if not model in models.keys()]
+                    old_models = [model.GetName() for model in [tree_old.GetListOfBranches()][0]]
                 if len(old_models) > 0:
                     root_file_out_old = uproot.open("{}_to_update".format(root_file_output))
 
+                models = {i:models[i] for i in models if i not in old_models}
+                all_models = old_models + [k for k in models]
+
                 leafValues = {}
-                for model in old_models:
-                    leafValues[model] = array.array("f", [0])
-                for model in models:
+                for model in all_models:
                     leafValues[model] = array.array("f", [0])
 
             if args.pandas:
@@ -308,27 +306,27 @@ def main(args):
             df["N_neutrinos_reco"] = N_neutrinos_in_channel[channel] * np.ones(len(df[inputs[0]]), dtype='int')
     
             for model in models:
+                print("Predicting with {}...".format(model))
                 df[model] = models[model].predict(df)
 
             if not args.dry:
                 print("Filling new branch in tree...")
-                for model in old_models:
+                for model in all_models:
                     newBranch = tree.Branch(
                         model,
                         leafValues[model],
                         "prediction/F"
                     )
-                for model in models:
-                    newBranch = tree.Branch(
-                        model,
-                        leafValues[model],
-                        "prediction/F"
-                    )
-                for k in range(len(df[model].values)):
-                    for model in models:
-                        leafValues[model][0] = df[model].values[k]
-                    for model in old_models:
-                        leafValues[model][0] = df_old[model].values[k]
+                first_entry = args.first_entry
+                last_entry = len(df[model].values)
+                if args.last_entry > first_entry:
+                    last_entry = args.last_entry
+                for k in range(first_entry, last_entry):
+                    for model in all_models:
+                        if model in old_models:
+                            leafValues[model][0] = df_old[model].values[k]
+                        else:
+                            leafValues[model][0] = df[model].values[k]
                     tree.Fill()
                 print("Filled.")
                 
