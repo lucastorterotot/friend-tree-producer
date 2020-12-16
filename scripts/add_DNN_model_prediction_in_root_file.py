@@ -305,6 +305,11 @@ def main(args):
 
             df["N_neutrinos_reco"] = N_neutrinos_in_channel[channel] * np.ones(len(df[inputs[0]]), dtype='int')
     
+            # remove values set at -10 by default to match training settings
+            for variable in ["jpt_r", "jeta_r", "jphi_r", "Njet_r"]:
+                if variable in inputs:
+                    df[variable].values[df[variable].values < 0] = 0
+    
             for model in models:
                 print("Predicting with {}...".format(model))
                 df[model] = models[model].predict(df)
