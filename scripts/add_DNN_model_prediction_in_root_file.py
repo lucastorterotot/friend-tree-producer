@@ -151,7 +151,14 @@ N_neutrinos_in_channel = {
 class DNN_model_from_json(object):
     
     def __init__(self, json_file):
-        self.name = "DNN_" + json_file.split('/')[-1].replace('.json', '').replace("-","_")
+        name = json_file.replace("/work/ltortero/ML_models/", "")
+        name = name.replace("trained_NNs_FastSim/", "")
+        name = name.replace("trained_xgboosts_FastSim/", "")
+        name = name.replace("/", "_")
+        name = name.replace('.json', '')
+        name = "DNN_" + name
+        name = name.replace("-","_")
+        self.name = name
         
         # load json and create model
         NN_weights_path_and_file = json_file.split('/')
