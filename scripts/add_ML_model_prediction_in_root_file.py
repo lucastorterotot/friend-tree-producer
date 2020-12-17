@@ -44,11 +44,11 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--channels", default="mt", type=str, help="Channels to process, comma separated."
+        "--channels", default="all", type=str, help="Channels to process, comma separated."
     )
 
     parser.add_argument(
-        "--categories", default="nominal", type=str, help="Categories to process, comma separated OR 'all'."
+        "--categories", default="all", type=str, help="Categories to process, comma separated OR 'all'."
     )
 
     parser.add_argument(

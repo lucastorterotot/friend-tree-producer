@@ -74,11 +74,11 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--channels", default="mt", type=str, help="Channels to process, comma separated."
+        "--channels", default="all", type=str, help="Channels to process, comma separated."
     )
 
     parser.add_argument(
-        "--categories", default="nominal", type=str, help="Categories to process, comma separated OR 'all'."
+        "--categories", default="all", type=str, help="Categories to process, comma separated OR 'all'."
     )
 
     parser.add_argument(
@@ -245,9 +245,9 @@ def main(args):
     root_file_in = uproot.open(root_file_input)
 
     if 'all' in channels:
-        channels = set([k.split('_')[0] for k in root_file_in.keys() if 'nominal' in k])
+        channels = set([k.split('_')[0] for k in root_file_in.keys()])
     if 'all' in categories:
-        categories = set([k.split('_')[-1] for k in root_file_in.keys() if any([c in k for c in channels])])
+        categories = set([k.split('_')[-1].split(';')[0] for k in root_file_in.keys() if any([c in k for c in channels])])
 
     if not args.dry:
         root_file_old = None
@@ -260,13 +260,18 @@ def main(args):
 
     for channel in channels:
         for cat in categories:
+            rootdirname = '{}_{}'.format(channel, cat)
+            if rootdirname not in root_file_in.keys() and "{};1".format(rootdirname) not in root_file_in.keys():
+                continue
+            if rootdirname != args.pipeline:
+                continue
+
             print('process pipeline: %s_%s' % (channel, cat))
 
             if not first_pass and not args.dry:
                 root_file_out = TFile(root_file_output, 'update')
             first_pass = False
 
-            rootdirname = '{}_{}'.format(channel, cat)
             if not args.dry:
                 rootdir_old = False
                 if root_file_old:
@@ -339,7 +344,7 @@ def main(args):
                     )
                 first_entry = args.first_entry
                 last_entry = len(df[model].values)
-                if args.last_entry > first_entry:
+                if args.last_entry > first_entry and args.last_entry < len(df[model].values):
                     last_entry = args.last_entry
                 for k in range(first_entry, last_entry):
                     for model in all_models:
