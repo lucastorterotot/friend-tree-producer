@@ -248,7 +248,7 @@ def main(args):
             rootdirname = '{}_{}'.format(channel, cat)
             if rootdirname not in root_file_in.keys() and "{};1".format(rootdirname) not in root_file_in.keys():
                 continue
-            if rootdirname != args.pipeline:
+            if rootdirname != args.pipeline and args.pipeline != None:
                 continue
 
             print('process pipeline: %s_%s' % (channel, cat))
