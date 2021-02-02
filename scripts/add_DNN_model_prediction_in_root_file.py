@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path = ['/home/ltortero/python/'] + sys.path
+import sys, os
+sys.path = ['{}/src/HiggsAnalysis/friend-tree-producer/python/'.format(os.environ["CMSSW_BASE"])] + sys.path
 
 """
     Example:
@@ -12,7 +12,7 @@ sys.path = ['/home/ltortero/python/'] + sys.path
             --output-dir  <out dir> \
             --dry
 """
-import os
+
 import numpy as np
 import argparse
 import logging
@@ -102,6 +102,8 @@ def parse_arguments():
 
     parser.add_argument("--pandas", action="store_true", default=False, help="Whether to use arrays or pandas dataframe with uproot")
 
+    parser.add_argument("--organize_outputs", default=False, help="Just compatibility: Remote access currently only works for SVFit computation")
+
     return parser.parse_args()
 
 var_names_at_KIT = {
@@ -148,10 +150,30 @@ N_neutrinos_in_channel = {
     "ee" : 4,
 }
 
+env={}
+for k in os.environ.keys():
+    env[k] = os.environ[k]
+
 class DNN_model_from_json(object):
     
     def __init__(self, json_file):
+        # load json and create model
+        NN_weights_path_and_file = json_file.split('/')
+        NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
+        NN_weights_file = "/".join(NN_weights_path_and_file)
+
+        if "srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/" in json_file:
+            os.system('mkdir -p ./$(dirname {a}) ; ( eval `scram unsetenv -sh` ; if [[ ! -e ./{a} ]] ; then gfal-copy {b} ./{a} ; fi ; if [[ ! -e ./{d} ]] ; then gfal-copy {c} ./{d} ; fi ; if [[ ! -e ./$(dirname {a})/inputs_for_models_in_this_dir.py ]] ; then gfal-copy $(dirname {b})/inputs_for_models_in_this_dir.py ./$(dirname {a})/inputs_for_models_in_this_dir.py ; fi ) '.format(
+                a = json_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./"),
+                b = json_file,
+                c = NN_weights_file,
+                d = NN_weights_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./"),
+            ))
+            json_file = json_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./")
+            NN_weights_file = NN_weights_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./")
+        
         name = json_file.replace("/work/ltortero/ML_models/", "")
+        name = name.replace("./store/user/ltortero/ML_models/", "")
         name = name.replace("trained_NNs_FastSim/", "")
         name = name.replace("trained_xgboosts_FastSim/", "")
         name = name.replace("/", "_")
@@ -159,11 +181,6 @@ class DNN_model_from_json(object):
         name = "DNN_" + name
         name = name.replace("-","_")
         self.name = name
-        
-        # load json and create model
-        NN_weights_path_and_file = json_file.split('/')
-        NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
-        NN_weights_file = "/".join(NN_weights_path_and_file)
         
         json_file_ = open(json_file, 'r')
         loaded_model_json = json_file_.read()
@@ -190,6 +207,7 @@ class DNN_model_from_json(object):
 
 def main(args):
     print(args)
+    reload_env=False
 
     channels = args.channels.split(',')
     categories = args.categories.split(',')
@@ -205,6 +223,8 @@ def main(args):
         DNN_object = DNN_model_from_json(DNN_json)
         models[DNN_object.name] = DNN_object
         inputs += DNN_object.inputs
+        if "srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/" in DNN_json:
+            reload_env=True
 
     # load root file and create friend tree
     root_file_input = args.input
@@ -237,7 +257,11 @@ def main(args):
     if not args.dry:
         root_file_old = None
         if not args.recreate:
-            os.system("mv {} {}_to_update".format(root_file_output, root_file_output))
+            os.system(
+                "if [[ -e {root_file_output} ]] ; then mv {root_file_output} {root_file_output}_to_update ; fi".format(
+                    root_file_output = root_file_output
+                )
+            )
             root_file_old = TFile("{}_to_update".format(root_file_output), 'read')
         root_file_out = TFile(root_file_output, 'recreate')
         print("Opened new file")
@@ -246,6 +270,7 @@ def main(args):
     for channel in channels:
         for cat in categories:
             rootdirname = '{}_{}'.format(channel, cat)
+            print(rootdirname)
             if rootdirname not in root_file_in.keys() and "{};1".format(rootdirname) not in root_file_in.keys():
                 continue
             if rootdirname != args.pipeline and args.pipeline != None:
@@ -318,10 +343,12 @@ def main(args):
             for model in models:
                 print("Predicting with {}...".format(model))
                 df[model] = models[model].predict(df)
+                print(df.keys())
 
             if not args.dry:
                 print("Filling new branch in tree...")
                 for model in all_models:
+                    print(model)
                     newBranch = tree.Branch(
                         model,
                         leafValues[model],
@@ -342,9 +369,22 @@ def main(args):
                 
                 rootdir.Remove(rootdir.Get(args.tree))
 
+                if reload_env:
+                    for k in env.keys():
+                        os.system('export {}={}'.format(k, env[k]))
+
                 tree.Write(args.tree, kOverwrite)
                 root_file_out.Close()
                 os.system("rm -rf {}_to_update".format(root_file_output))
+
+                print("Done")
+                os.system("pwd ; ls -lrt ; ls -lrt {}".format(root_file_output))
+                if reload_env:
+                    os.system(
+                        "mv {f} . ; rmdir $(dirname {f})".format(
+                            f = root_file_output,
+                        )
+                    )
 
 if __name__ == "__main__":
     args = parse_arguments()
