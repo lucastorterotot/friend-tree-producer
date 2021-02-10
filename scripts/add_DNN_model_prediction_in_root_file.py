@@ -195,7 +195,6 @@ class DNN_model_from_json(object):
 
 def main(args):
     print(args)
-    reload_env=False
 
     channels = args.channels.split(',')
     categories = args.categories.split(',')
@@ -211,8 +210,6 @@ def main(args):
         DNN_object = DNN_model_from_json(DNN_json)
         models[DNN_object.name] = DNN_object
         inputs += DNN_object.inputs
-        if "srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/" in DNN_json:
-            reload_env=True
 
     # load root file and create friend tree
     root_file_input = args.input
@@ -357,22 +354,17 @@ def main(args):
                 
                 rootdir.Remove(rootdir.Get(args.tree))
 
-                if reload_env:
-                    for k in env.keys():
-                        os.system('export {}={}'.format(k, env[k]))
-
                 tree.Write(args.tree, kOverwrite)
                 root_file_out.Close()
                 os.system("rm -rf {}_to_update".format(root_file_output))
 
                 print("Done")
                 os.system("pwd ; ls -lrt ; ls -lrt {}".format(root_file_output))
-                if reload_env:
-                    os.system(
-                        "mv {f} . ; rmdir $(dirname {f})".format(
-                            f = root_file_output,
-                        )
+                os.system(
+                    "mv {f} . ; rmdir $(dirname {f})".format(
+                        f = root_file_output,
                     )
+                )
 
 if __name__ == "__main__":
     args = parse_arguments()

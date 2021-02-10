@@ -250,7 +250,11 @@ def main(args):
     if not args.dry:
         root_file_old = None
         if not args.recreate:
-            os.system("mv {} {}_to_update".format(root_file_output, root_file_output))
+            os.system(
+                "if [[ -e {root_file_output} ]] ; then mv {root_file_output} {root_file_output}_to_update ; fi".format(
+                    root_file_output = root_file_output
+                )
+            )
             root_file_old = TFile("{}_to_update".format(root_file_output), 'read')
         root_file_out = TFile(root_file_output, 'recreate')
         print("Opened new file")
