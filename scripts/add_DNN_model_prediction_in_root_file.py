@@ -162,20 +162,8 @@ class DNN_model_from_json(object):
         NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
         NN_weights_file = "/".join(NN_weights_path_and_file)
 
-        if "srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/" in json_file:
-            os.system('mkdir -p ./$(dirname {a}) ; ( eval `scram unsetenv -sh` ; if [[ ! -e ./{a} ]] ; then gfal-copy {b} ./{a} ; fi ; if [[ ! -e ./{d} ]] ; then gfal-copy {c} ./{d} ; fi ; if [[ ! -e ./$(dirname {a})/inputs_for_models_in_this_dir.py ]] ; then gfal-copy $(dirname {b})/inputs_for_models_in_this_dir.py ./$(dirname {a})/inputs_for_models_in_this_dir.py ; fi ) '.format(
-                a = json_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./"),
-                b = json_file,
-                c = NN_weights_file,
-                d = NN_weights_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./"),
-            ))
-            json_file = json_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./")
-            NN_weights_file = NN_weights_file.replace("srm://cmssrm-kit.gridka.de:8443/srm/managerv2?SFN=/pnfs/gridka.de/cms/disk-only/", "./")
         
-        name = json_file.replace("/work/ltortero/ML_models/", "")
-        name = name.replace("./store/user/ltortero/ML_models/", "")
-        name = name.replace("trained_NNs_FastSim/", "")
-        name = name.replace("trained_xgboosts_FastSim/", "")
+        name = "_".join(json_file.split("/")[-4:])
         name = name.replace("/", "_")
         name = name.replace('.json', '')
         name = "DNN_" + name
