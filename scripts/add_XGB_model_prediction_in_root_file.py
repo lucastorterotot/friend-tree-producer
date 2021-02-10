@@ -346,7 +346,7 @@ def main(args):
                 last_entry = len(df[model].values)
                 if args.last_entry > first_entry and args.last_entry < len(df[model].values):
                     last_entry = args.last_entry
-                for k in range(first_entry, last_entry):
+                for k in range(first_entry, last_entry +1):
                     for model in all_models:
                         if model in old_models:
                             leafValues[model][0] = df_old[model].values[k]
