@@ -50,7 +50,7 @@ def main():
     # TODO: Expand functionalities for remote access
     if args.mode == "xrootd":
 
-        if args.executable != "SVFit":
+        if args.executable not in ["SVFit", "add_DNN_model_prediction_in_root_file.py"]:
             print("Remote access currently only works for SVFit computation.")
             exit()
 
