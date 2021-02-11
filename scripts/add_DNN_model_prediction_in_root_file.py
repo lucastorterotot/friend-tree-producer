@@ -190,8 +190,22 @@ class DNN_model_from_json(object):
         this_model_inputs = [i if i not in var_names_at_KIT.keys() else var_names_at_KIT[i] for i in this_model_inputs]
         self.inputs = this_model_inputs
             
-    def predict(self, filtered_df):
-        return self.model.predict(filtered_df[self.inputs])
+    def predict(self, evt, channel):
+        # Get the inputs from tree
+        df = {}
+        for input in self.inputs:
+            if input not in ["mt_tt", "N_neutrinos_reco"]:
+                df[input] = evt.GetLeaf(input).GetValue(0)
+        # get mt_tt as defined for training
+        df["mt_tt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
+        # derive N neutrinos
+        df["N_neutrinos_reco"] = N_neutrinos_in_channel[channel]
+        # Set -10 to 0 for variable in ["jpt_r", "jeta_r", "jphi_r", "Njet_r"] as defined in training
+        for variable in ["jpt_r", "jeta_r", "jphi_r", "Njet_r"]:
+            if variable in self.inputs:
+                if df[input] == -10:
+                    df[input] = 0
+        return self.model.predict(np.array([[df[input] for input in self.inputs]]))
 
 def main(args):
     print(args)
@@ -232,23 +246,17 @@ def main(args):
         + ".root",
     )
 
-    root_file_in = uproot.open(root_file_input)
+    root_file_in = TFile.Open(root_file_input, 'read')
 
     if 'all' in channels:
-        channels = set([k.split('_')[0] for k in root_file_in.keys()])
+        #channels = set([k.split('_')[0] for k in root_file_in.keys()])
+        channels = set([k.GetName().split('_')[0] for k in root_file_in.GetListOfKeys()])
     if 'all' in categories:
-        categories = set([k.split('_')[-1].split(';')[0] for k in root_file_in.keys() if any([c in k for c in channels])])
+        #categories = set([k.split('_')[-1].split(';')[0] for k in root_file_in.keys() if any([c in k for c in channels])])
+        categories = set([k.GetName().split('_')[-1] for k in root_file_in.GetListOfKeys() if any([c == k.GetName().split('_')[0] for c in channels])])
 
     if not args.dry:
-        root_file_old = None
-        if not args.recreate:
-            os.system(
-                "if [[ -e {root_file_output} ]] ; then mv {root_file_output} {root_file_output}_to_update ; fi".format(
-                    root_file_output = root_file_output
-                )
-            )
-            root_file_old = TFile("{}_to_update".format(root_file_output), 'read')
-        root_file_out = TFile(root_file_output, 'recreate')
+        root_file_out = TFile.Open(root_file_output, 'recreate')
         print("Opened new file")
     first_pass = True
 
@@ -256,7 +264,7 @@ def main(args):
         for cat in categories:
             rootdirname = '{}_{}'.format(channel, cat)
             print(rootdirname)
-            if rootdirname not in root_file_in.keys() and "{};1".format(rootdirname) not in root_file_in.keys():
+            if rootdirname not in [k.GetName() for k in root_file_in.GetListOfKeys()]:# and "{};1".format(rootdirname) not in root_file_in.keys():
                 continue
             if rootdirname != args.pipeline and args.pipeline != None:
                 continue
@@ -264,75 +272,22 @@ def main(args):
             print('process pipeline: %s_%s' % (channel, cat))
 
             if not first_pass and not args.dry:
-                root_file_out = TFile(root_file_output, 'update')
+                root_file_out = TFile.Open(root_file_output, 'update')
             first_pass = False
 
             if not args.dry:
-                rootdir_old = False
-                if root_file_old:
-                    rootdir_old = root_file_old.GetDirectory(rootdirname)
-                if not rootdir_old:
-                    already_rootdir = False
-                else:
-                    already_rootdir = True
                 rootdir = TDirectoryFile(rootdirname, rootdirname)
                 rootdir.cd()
-                tree_old = False
-                if already_rootdir:
-                    if not args.recreate:
-                        tree_old = rootdir_old.Get(args.tree)
                 tree = TTree(args.tree, args.tree)
 
-                old_models = []
-                if tree_old:
-                    old_models = [model.GetName() for model in [tree_old.GetListOfBranches()][0]]
-                if len(old_models) > 0:
-                    root_file_out_old = uproot.open("{}_to_update".format(root_file_output))
-
-                models = {i:models[i] for i in models if i not in old_models}
-                all_models = old_models + [k for k in models]
-
                 leafValues = {}
-                for model in all_models:
+                for model in models:
                     leafValues[model] = array.array("f", [0])
 
-            if args.pandas:
-                df = root_file_in[rootdirname][args.tree].pandas.df()
-                if tree_old:
-                    df_old = root_file_out_old[rootdirname][args.tree].pandas.df()
-            else:
-                _df = root_file_in[rootdirname][args.tree].arrays()
-                df = pandas.DataFrame()
-                keys_to_export = set(inputs+["pt_1", "pt_2", "phi_1", "phi_2"])
-                for key in ["N_neutrinos_reco", "mt_tt"]:
-                    if key in keys_to_export:
-                        keys_to_export.remove(key)
-                for k in keys_to_export:
-                    df[k] = _df[str.encode(k)]
-                if tree_old:
-                    _df_old = root_file_out_old[rootdirname][args.tree].arrays()
-                    df_old = pandas.DataFrame()
-                    keys_to_export = old_models
-                    for k in keys_to_export:
-                        df_old[k] = _df_old[str.encode(k)]
-
-            df["mt_tt"] = (2*df["pt_1"]*df["pt_2"]*(1-np.cos(df["phi_1"]-df["phi_2"])))**.5
-
-            df["N_neutrinos_reco"] = N_neutrinos_in_channel[channel] * np.ones(len(df[inputs[0]]), dtype='int')
-    
-            # remove values set at -10 by default to match training settings
-            for variable in ["jpt_r", "jeta_r", "jphi_r", "Njet_r"]:
-                if variable in inputs:
-                    df[variable].values[df[variable].values < 0] = 0
-    
-            for model in models:
-                print("Predicting with {}...".format(model))
-                df[model] = models[model].predict(df)
-                print(df.keys())
-
+            tree_from_root_file_in = root_file_in.Get(rootdirname).Get(args.tree)
             if not args.dry:
                 print("Filling new branch in tree...")
-                for model in all_models:
+                for model in models:
                     print(model)
                     newBranch = tree.Branch(
                         model,
@@ -340,26 +295,23 @@ def main(args):
                         "prediction/F"
                     )
                 first_entry = args.first_entry
-                last_entry = len(df[model].values)
-                if args.last_entry > first_entry and args.last_entry < len(df[model].values):
+                last_entry = tree_from_root_file_in.GetEntries()
+                if args.last_entry > first_entry and args.last_entry < last_entry:
                     last_entry = args.last_entry
-                for k in range(first_entry, last_entry +1):
-                    for model in all_models:
-                        if model in old_models:
-                            leafValues[model][0] = df_old[model].values[k]
-                        else:
-                            leafValues[model][0] = df[model].values[k]
-                    tree.Fill()
+                k = 0
+                for evt in tree_from_root_file_in:
+                    if k >= first_entry and k <= last_entry:
+                        for model in models:
+                            leafValues[model][0] = models[model].predict(evt, channel)
+                        tree.Fill()
+                    k += 1
                 print("Filled.")
-                
-                rootdir.Remove(rootdir.Get(args.tree))
 
+            if not args.dry:
                 tree.Write(args.tree, kOverwrite)
                 root_file_out.Close()
-                os.system("rm -rf {}_to_update".format(root_file_output))
 
                 print("Done")
-                os.system("pwd ; ls -lrt ; ls -lrt {}".format(root_file_output))
                 os.system(
                     "mv {f} . ; rmdir $(dirname {f})".format(
                         f = root_file_output,
