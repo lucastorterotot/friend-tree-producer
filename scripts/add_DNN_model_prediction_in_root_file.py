@@ -249,10 +249,8 @@ def main(args):
     root_file_in = TFile.Open(root_file_input, 'read')
 
     if 'all' in channels:
-        #channels = set([k.split('_')[0] for k in root_file_in.keys()])
         channels = set([k.GetName().split('_')[0] for k in root_file_in.GetListOfKeys()])
     if 'all' in categories:
-        #categories = set([k.split('_')[-1].split(';')[0] for k in root_file_in.keys() if any([c in k for c in channels])])
         categories = set([k.GetName().split('_')[-1] for k in root_file_in.GetListOfKeys() if any([c == k.GetName().split('_')[0] for c in channels])])
 
     if not args.dry:
@@ -264,7 +262,7 @@ def main(args):
         for cat in categories:
             rootdirname = '{}_{}'.format(channel, cat)
             print(rootdirname)
-            if rootdirname not in [k.GetName() for k in root_file_in.GetListOfKeys()]:# and "{};1".format(rootdirname) not in root_file_in.keys():
+            if rootdirname not in [k.GetName() for k in root_file_in.GetListOfKeys()]:
                 continue
             if rootdirname != args.pipeline and args.pipeline != None:
                 continue
