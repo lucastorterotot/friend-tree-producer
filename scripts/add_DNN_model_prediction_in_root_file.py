@@ -162,14 +162,6 @@ class DNN_model_from_json(object):
         NN_weights_path_and_file[-1] = "NN_weights-{}".format(NN_weights_path_and_file[-1].replace('.json', '.h5'))
         NN_weights_file = "/".join(NN_weights_path_and_file)
 
-        
-        name = "_".join(json_file.split("/")[-4:])
-        name = name.replace("/", "_")
-        name = name.replace('.json', '')
-        name = "DNN_" + name
-        name = name.replace("-","_")
-        self.name = name
-        
         json_file_ = open(json_file, 'r')
         loaded_model_json = json_file_.read()
         json_file_.close()
@@ -220,9 +212,11 @@ def main(args):
 
     models = {}
     inputs = []
+    model_number=1
     for DNN_json in DNN_jsons:
         DNN_object = DNN_model_from_json(DNN_json)
-        models[DNN_object.name] = DNN_object
+        models["DNN{}".format(model_number)] = DNN_object
+        model_number += 1
         inputs += DNN_object.inputs
 
     # load root file and create friend tree
@@ -290,7 +284,7 @@ def main(args):
                     newBranch = tree.Branch(
                         model,
                         leafValues[model],
-                        "prediction/F"
+                        "{}/F".format(model)
                     )
                 first_entry = args.first_entry
                 last_entry = tree_from_root_file_in.GetEntries()
