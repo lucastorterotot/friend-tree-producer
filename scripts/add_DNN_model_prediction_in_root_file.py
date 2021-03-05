@@ -303,12 +303,13 @@ def main(args):
                 tree.Write(args.tree, kOverwrite)
                 root_file_out.Close()
 
-                print("Done")
-                os.system(
-                    "mv {f} . ; rmdir $(dirname {f})".format(
-                        f = root_file_output,
-                    )
-                )
+    print("Done")
+    # if not args.dry:
+    #     os.system(
+    #         "mv {f} . ; rmdir $(dirname {f})".format(
+    #             f = root_file_output,
+    #         )
+    #     )
 
 if __name__ == "__main__":
     args = parse_arguments()
