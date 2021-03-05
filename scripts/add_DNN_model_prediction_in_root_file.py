@@ -288,7 +288,7 @@ def main(args):
                     )
                 first_entry = args.first_entry
                 last_entry = tree_from_root_file_in.GetEntries()
-                if args.last_entry > first_entry and args.last_entry < last_entry:
+                if args.last_entry >= first_entry and args.last_entry < last_entry:
                     last_entry = args.last_entry
                 k = 0
                 for evt in tree_from_root_file_in:
@@ -296,6 +296,8 @@ def main(args):
                         for model in models:
                             leafValues[model][0] = models[model].predict(evt, channel)
                         tree.Fill()
+                    elif k > last_entry:
+                        break
                     k += 1
                 print("Filled.")
 
